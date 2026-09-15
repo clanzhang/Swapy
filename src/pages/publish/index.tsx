@@ -164,7 +164,9 @@ export default function Publish() {
       })
       reset()
       void Taro.showToast({ title: '发布成功', icon: 'success' })
-      setTimeout(() => void Taro.switchTab({ url: '/pages/index/index' }), 900)
+      // 切到「我的」而不是首页：刚发的东西就在「我的发布」第一条。
+      // 回首页只会看到一堆别人的卡，用户会以为「发了但没显示」。
+      setTimeout(() => void Taro.switchTab({ url: '/pages/profile/index' }), 900)
     } catch (err) {
       // 服务端可能拦下客户端没拦到的内容（比如请求被改过）
       const message = err instanceof Error && err.message ? err.message : '发布失败，请稍后重试'

@@ -62,7 +62,6 @@ export default function Index() {
     topRef.current?.trigger(direction)
   }
 
-  const isEmpty = !cards.length && !loading
   const outOfQuota = (quota?.remaining ?? 1) <= 0
 
   return (
@@ -85,21 +84,29 @@ export default function Index() {
             resetAt={quota!.resetAt}
             onPublish={() => void Taro.switchTab({ url: '/pages/publish/index' })}
           />
-        ) : isEmpty ? (
-          <View className='empty'>
-            <FaceMild size={32} color='#C8C8CE' />
-            <Text className='empty-title empty-title--spaced'>
-              {hasMore ? '这一批滑完啦' : '附近的物品都看过了'}
-            </Text>
-            <Text className='empty-desc'>
-              {hasMore
-                ? '换个品类筛选，或者稍后再来看看'
-                : '发布一件自己的闲置，让更多人滑到你'}
-            </Text>
-            <View className='deck-empty-btn' onClick={() => void init()}>
-              <Text>重新加载</Text>
+        ) : !cards.length ? (
+          // 加载中也要有东西，否则卡片区是一片空白，看起来像坏了
+          loading ? (
+            <View className='deck-loading'>
+              <View className='deck-loading__spinner' />
+              <Text className='deck-loading__text'>正在找附近的闲置…</Text>
             </View>
-          </View>
+          ) : (
+            <View className='empty'>
+              <FaceMild size={32} color='#C8C8CE' />
+              <Text className='empty-title empty-title--spaced'>
+                {hasMore ? '这一批滑完啦' : '附近的物品都看过了'}
+              </Text>
+              <Text className='empty-desc'>
+                {hasMore
+                  ? '换个品类筛选，或者稍后再来看看'
+                  : '发布一件自己的闲置，让更多人滑到你'}
+              </Text>
+              <View className='deck-empty-btn' onClick={() => void init()}>
+                <Text>重新加载</Text>
+              </View>
+            </View>
+          )
         ) : (
           <CardStack
             cards={cards}
