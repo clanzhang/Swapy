@@ -228,11 +228,15 @@ class MockApi implements SwapyApi {
       .map((i) => PRICE_RANGE_MAP[i.priceRange])
       .filter(Boolean)
 
-    const pool = this.db.items
+    // 候选集**不排除已滑过的**。
+    //
+    // 游标是「候选列表里的位置」。如果候选集因为滑过而变短、游标却按原步长
+    // 前进，每翻一页就会静默跳过一批卡片 —— 实测 42 张只能滑到 26 张。
+    // 所以排除已滑过必须放在切片**之后**做。
+    const candidates = this.db.items
       .filter((item) => {
         if (item.status !== 'active') return false
         if (item.ownerId === me._id) return false
-        if (swipedIds.has(item._id)) return false
         if (query.categories?.length && !query.categories.includes(item.category)) return false
 
         const owner = this.userById(item.ownerId)
@@ -250,9 +254,20 @@ class MockApi implements SwapyApi {
       .map((item) => this.toCard(item))
       .sort((a, b) => a.distanceKm - b.distanceKm || b.createdAt - a.createdAt)
 
+    // 沿候选集往后扫，跳过已滑过的，凑够 limit 张（或扫到底）
+    const list: CardItem[] = []
+    let scan = offset
+    while (list.length < limit && scan < candidates.length) {
+      const window = candidates.slice(scan, scan + (limit - list.length))
+      scan += window.length
+      for (const card of window) {
+        if (!swipedIds.has(card._id)) list.push(card)
+      }
+    }
+
     return {
-      list: pool.slice(offset, offset + limit),
-      nextCursor: offset + limit < pool.length ? String(offset + limit) : null,
+      list,
+      nextCursor: scan < candidates.length ? String(scan) : null,
       quota,
     }
   }

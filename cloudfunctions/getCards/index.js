@@ -83,7 +83,9 @@ exports.main = async (event = {}) => {
     status: 'active',
     ownerId: _.neq(me._id),
   }
-  if (swipedIds.length) where._id = _.nin(swipedIds)
+  // 注意：这里**不能**用 _.nin(swipedIds) 把已滑过的过滤掉。
+  // 游标是「候选列表里的位置」，候选集如果因为滑过而变短、游标却按原步长
+  // 前进，每翻一页就会静默跳过一批卡片。排除已滑过必须放在切片之后做。
   if (categories.length) where.category = _.in(categories)
 
   const itemRes = await items.where(where).orderBy('createdAt', 'desc').limit(SCAN_LIMIT).get()
@@ -119,13 +121,23 @@ exports.main = async (event = {}) => {
     })
     .sort((a, b) => a.distanceKm - b.distanceKm || b.createdAt - a.createdAt)
 
-  const page = list.slice(offset, offset + limit)
+  // 沿候选集往后扫，跳过已滑过的，凑够 limit 张（或扫到底）
+  const scanned = new Set(swipedIds)
+  const page = []
+  let scan = offset
+  while (page.length < limit && scan < list.length) {
+    const window = list.slice(scan, scan + (limit - page.length))
+    scan += window.length
+    for (const card of window) {
+      if (!scanned.has(card._id)) page.push(card)
+    }
+  }
 
   return {
     ok: true,
     data: {
       list: page,
-      nextCursor: offset + limit < list.length ? String(offset + limit) : null,
+      nextCursor: scan < list.length ? String(scan) : null,
       quota,
     },
   }

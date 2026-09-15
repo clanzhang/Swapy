@@ -101,7 +101,7 @@ AppID / 云环境卡住了。这一层把两者解耦：
 | `nickname` | string | ≤12 字 |
 | `avatarUrl` | string | |
 | `city` | string | 手选，用于兜底展示 |
-| `quota` | `{ dayKey, used }` | 每日「想要」额度。见 5.4 |
+| `quota` | `{ dayKey, used }` | 每日刷卡额度。见 5.5 |
 | `location` | `{lat, lng}` | 距离计算依据，缺省时视为未知 |
 | `createdAt` / `lastActiveAt` | number | 时间戳（ms） |
 
@@ -204,7 +204,27 @@ Mock 模式把数据存在本地 Storage。如果读存档时直接信任，那�
 
 开发阶段还可以在「我的」页底部点「重置演示数据」（仅 Mock 模式显示）。
 
-### 5.4 每日配额
+### 5.4 分页游标必须索引一个稳定的列表
+
+翻页的实现里，**排除已滑过的动作必须放在切片之后**：
+
+```js
+// ✗ 候选集先被滑过缩短，游标却按原步长前进 → 每页静默跳过一批
+const pool = candidates.filter((c) => !swipedIds.has(c._id))
+pool.slice(offset, offset + limit)
+
+// ✓ 候选集稳定，沿它往后扫，跳过已滑过的
+while (list.length < limit && scan < candidates.length) { ... }
+```
+
+这个 bug 的隐蔽之处：**不报错、不崩溃，只是卡变少了**。
+实测 42 张只能滑到 26 张，看起来就像「池子就这么大」，很难归因到分页。
+`pnpm verify:matching` 里有一条断言：边翻边滑，最终必须拿满整个池子。
+
+云函数 `getCards` 容易踩到同一个坑，因为它在数据库查询里就用
+`_.nin(swipedIds)` 把已滑过滤掉了 —— 那个也不能用。
+
+### 5.5 每日配额
 
 **口径是「滑过的卡片数」：左滑跳过和右滑想要都消耗额度。**
 额度就是「每天能看多少张卡」。

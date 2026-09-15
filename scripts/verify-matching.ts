@@ -82,6 +82,38 @@ async function main() {
     )
   })
 
+  await step('翻页不漏卡：边翻边滑也要能拿满整个池子', async () => {
+    // 游标是「候选列表里的位置」。如果候选集因为滑过而变短、游标却按原步长
+    // 前进，每翻一页就会静默跳过一批卡片 —— 曾经 42 张只能滑到 26 张，
+    // 而且看起来像「池子就这么大」，非常难察觉。
+    //
+    // 这里挑一个小池子（数码）避开每日配额的限制。
+    const probe = createMockApi()
+    await probe.init()
+
+    const total = (await probe.getCards({ limit: 999, categories: ['digital'] })).list.length
+    assert.ok(total > 6, `前置条件：数码池子太小（${total} 张），测不出分页问题`)
+
+    const seen = new Set<string>()
+    let cursor: string | null = null
+
+    for (let guard = 0; guard < 30; guard += 1) {
+      const page = await probe.getCards({ cursor, limit: 5, categories: ['digital'] })
+      for (const card of page.list) {
+        seen.add(card._id)
+        await probe.swipe(card._id, 'left')
+      }
+      cursor = page.nextCursor
+      if (!cursor) break
+    }
+
+    assert.equal(
+      seen.size,
+      total,
+      `池子有 ${total} 张，边翻边滑只拿到 ${seen.size} 张 —— 游标跳过了卡片`,
+    )
+  })
+
   await step('左滑不产生匹配，且该物品不再出现', async () => {
     const before = await api.getCards({ limit: 200 })
     const target = before.list[0]
