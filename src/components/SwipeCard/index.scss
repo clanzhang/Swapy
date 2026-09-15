@@ -1,0 +1,171 @@
+.swipe-card__area {
+  width: 100%;
+  height: 100%;
+}
+
+.swipe-card__mover {
+  width: 100%;
+  height: 100%;
+}
+
+.swipe-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: $card;
+  border-radius: $radius-card;
+  box-shadow: $shadow-card;
+  // 旋转跟手：不加 transition，否则会拖影
+  transform-origin: 50% 120%;
+}
+
+.swipe-card--static {
+  // 牌堆下层卡片只做视觉占位，尺寸由外层 slot 决定
+  width: 100%;
+  height: 100%;
+}
+
+.swipe-card__inner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+// ------------------------------------------------------------------ 图片区
+
+.swipe-card__media {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+// ------------------------------------------------------------------ 信息区
+
+.swipe-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 14px 16px;
+  background: $card;
+}
+
+.swipe-card__title {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.swipe-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.swipe-card__desc {
+  color: $text-sub;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.swipe-card__owner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 2px;
+}
+
+.swipe-card__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: $brand-soft;
+}
+
+.swipe-card__avatar-img {
+  width: 100%;
+  height: 100%;
+}
+
+.swipe-card__avatar-text {
+  color: $brand-deep;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.swipe-card__name {
+  max-width: 96px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.swipe-card__meta {
+  margin-left: auto;
+  color: $text-weak;
+  font-size: 11px;
+}
+
+// ------------------------------------------------------------------ 操作印章
+
+.swipe-card__stamp {
+  position: absolute;
+  top: 28px;
+  padding: 5px 12px;
+  border: 3px solid currentcolor;
+  border-radius: 8px;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  pointer-events: none;
+}
+
+.swipe-card__stamp--like {
+  left: 20px;
+  color: $brand;
+  transform: rotate(-16deg);
+}
+
+.swipe-card__stamp--nope {
+  right: 20px;
+  color: #9aa0a6;
+  transform: rotate(16deg);
+}
+
+.swipe-card__stamp--up {
+  top: auto;
+  bottom: 130px;
+  left: 50%;
+  color: $green;
+  transform: translateX(-50%);
+}
+
+// ------------------------------------------------------------------ 提示
+
+.swipe-card__hint {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  color: $text-weak;
+  font-size: 11px;
+  transform: translateX(-50%);
+  animation: swipe-hint 1.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes swipe-hint {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: translate(-50%, 0);
+  }
+
+  50% {
+    opacity: 0.95;
+    transform: translate(-50%, -4px);
+  }
+}

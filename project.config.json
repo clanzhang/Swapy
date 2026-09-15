@@ -1,0 +1,26 @@
+{
+  "miniprogramRoot": "dist/",
+  "projectname": "swapy",
+  "description": "换换 — 闲置物品滑动匹配交换小程序",
+  "appid": "touristappid",
+  "setting": {
+    "urlCheck": false,
+    "es6": false,
+    "enhance": false,
+    "compileHotReLoad": false,
+    "postcss": false,
+    "minified": false,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    },
+    "packNpmManually": true,
+    "packNpmRelationList": []
+  },
+  "compileType": "miniprogram",
+  "simulatorType": "wechat",
+  "simulatorPluginLibVersion": {},
+  "condition": {},
+  "cloudfunctionRoot": "cloudfunctions/"
+}

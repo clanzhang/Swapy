@@ -1,0 +1,9 @@
+{
+  "name": "publishItem",
+  "version": "1.0.0",
+  "description": "换换云函数 - publishItem",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

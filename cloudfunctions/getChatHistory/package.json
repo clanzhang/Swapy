@@ -1,0 +1,9 @@
+{
+  "name": "getChatHistory",
+  "version": "1.0.0",
+  "description": "换换云函数 - getChatHistory",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

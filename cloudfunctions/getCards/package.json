@@ -1,0 +1,9 @@
+{
+  "name": "getCards",
+  "version": "1.0.0",
+  "description": "换换云函数 - getCards",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

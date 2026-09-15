@@ -1,0 +1,21 @@
+.item-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #f2f2f5;
+  border-radius: inherit;
+}
+
+.item-image--ph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.item-image__emoji {
+  font-size: 56px;
+  line-height: 1;
+  // 让占位 emoji 有一点「贴纸」质感，而不是纯色块
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.14));
+  opacity: 0.9;
+}

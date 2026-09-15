@@ -1,0 +1,29 @@
+// ---------------------------------------------------------------------------
+// 设计变量（由 config/index.ts 的 sass.resource 注入到每个 .scss）
+//
+// 设计稿宽度 375，代码里写 px 即可，Taro 会转成 rpx。
+// ---------------------------------------------------------------------------
+
+$brand: #ff6b35;
+$brand-soft: #fff3e0;
+$brand-deep: #e2551f;
+$brand-glow: rgba(255, 107, 53, 0.45);
+
+$text: #1f1f1f;
+$text-sub: #8a8a8e;
+$text-weak: #b8b8bd;
+
+$bg: #f7f7f9;
+$card: #ffffff;
+$border: #f0f0f2;
+
+$green: #2fbf71;
+$red: #ff4d4f;
+
+$radius-card: 16px;
+$radius-chip: 18px;
+$radius-btn: 26px;
+
+$shadow-card: 0 8px 24px rgba(24, 24, 32, 0.1);
+$shadow-float: 0 10px 28px rgba(24, 24, 32, 0.16);
+$shadow-brand: 0 8px 20px rgba(255, 107, 53, 0.32);

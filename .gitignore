@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.temp/
+.rn_temp/
+.swc/
+.tmp/
+# 云环境 ID 等本地配置，不入库
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+.idea/
+.vscode/
+project.private.config.json
+cloudfunctions/**/node_modules/

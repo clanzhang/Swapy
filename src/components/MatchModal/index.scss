@@ -1,0 +1,172 @@
+.match-modal {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 900;
+}
+
+.match-modal__mask {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: linear-gradient(160deg, rgba(255, 107, 53, 0.96) 0%, rgba(226, 85, 31, 0.98) 100%);
+}
+
+// --------------------------------------------------------------- 撒花
+
+.match-modal__confetti {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  // 只让粒子铺满上半屏，重心留在文案上
+  height: 70%;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.match-modal__confetti-piece {
+  position: absolute;
+  top: -20px;
+  border-radius: 2px;
+  opacity: 0;
+  animation-name: confetti-fall;
+  animation-timing-function: cubic-bezier(0.3, 0.6, 0.5, 1);
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+}
+
+@keyframes confetti-fall {
+  0% {
+    opacity: 0;
+    transform: translateY(0) rotate(0deg);
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(420px) rotate(560deg);
+  }
+}
+
+// --------------------------------------------------------------- 内容
+
+.match-modal__content {
+  position: absolute;
+  top: 50%;
+  right: 28px;
+  left: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 20px 22px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: $shadow-float;
+  transform: translateY(-50%);
+}
+
+.match-modal__title {
+  color: $brand;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.match-modal__sub {
+  margin-top: 6px;
+  color: $text-sub;
+  font-size: 12px;
+}
+
+.match-modal__pair {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 22px;
+}
+
+.match-modal__slot {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+
+.match-modal__thumb {
+  width: 86px;
+  height: 86px;
+  overflow: hidden;
+  border: 2px solid $brand-soft;
+  border-radius: 16px;
+  box-shadow: 0 6px 16px rgba(24, 24, 32, 0.12);
+}
+
+.match-modal__slot-label {
+  width: 100%;
+  margin-top: 8px;
+  color: $text-sub;
+  font-size: 11px;
+  text-align: center;
+}
+
+.match-modal__heart {
+  flex: none;
+  font-size: 22px;
+  animation: heart-beat 1s ease-in-out infinite;
+}
+
+@keyframes heart-beat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  35% {
+    transform: scale(1.28);
+  }
+
+  60% {
+    transform: scale(0.96);
+  }
+}
+
+.match-modal__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: 24px;
+}
+
+.match-modal__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 46px;
+  border-radius: $radius-btn;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.match-modal__btn--primary {
+  background: $brand;
+  color: #fff;
+  box-shadow: $shadow-brand;
+}
+
+.match-modal__btn--ghost {
+  color: $text-sub;
+  font-weight: 500;
+}

@@ -1,0 +1,35 @@
+.cat-filter {
+  width: 100%;
+  white-space: nowrap;
+}
+
+.cat-filter__row {
+  display: inline-flex;
+  gap: 8px;
+  // 让第一个和最后一个 chip 不贴边
+  padding: 2px 16px 10px;
+}
+
+.cat-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 13px;
+  border: 1px solid $border;
+  border-radius: $radius-chip;
+  background: $card;
+  color: $text-sub;
+  font-size: 13px;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease;
+}
+
+.cat-chip--on {
+  border-color: $brand;
+  background: $brand;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.28);
+}

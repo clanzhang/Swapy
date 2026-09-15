@@ -1,0 +1,236 @@
+.profile {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.profile__body {
+  flex: 1;
+  min-height: 0;
+  padding: 12px 16px 0;
+}
+
+.profile__safe-area {
+  height: 20px;
+}
+
+// ------------------------------------------------------------------ 资料卡
+
+.profile__card {
+  padding: 16px 14px;
+  border-radius: $radius-card;
+  background: linear-gradient(150deg, $brand 0%, $brand-deep 100%);
+  box-shadow: $shadow-brand;
+}
+
+.profile__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile__avatar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.profile__who {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.profile__name {
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.profile__meta {
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 11px;
+}
+
+.profile__edit {
+  flex: none;
+  padding: 5px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 14px;
+  color: #fff;
+  font-size: 11px;
+}
+
+// ------------------------------------------------------------------ 编辑态
+
+.profile__editor {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.profile__editor-label {
+  display: block;
+  margin-bottom: 6px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 11px;
+}
+
+.profile__editor-input {
+  margin-bottom: 14px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 14px;
+}
+
+.profile__cities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.profile__city {
+  padding: 5px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+}
+
+.profile__city--on {
+  border-color: #fff;
+  background: #fff;
+  color: $brand-deep;
+  font-weight: 600;
+}
+
+// ------------------------------------------------------------------ Tab
+
+.profile__tabs {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0 12px;
+}
+
+.profile__tab {
+  padding: 7px 14px;
+  border-radius: $radius-chip;
+  background: $card;
+  color: $text-sub;
+  font-size: 13px;
+  transition: all 160ms ease;
+}
+
+.profile__tab--on {
+  background: $brand-soft;
+  color: $brand-deep;
+  font-weight: 600;
+}
+
+// ------------------------------------------------------------------ 列表
+
+.row-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 14px;
+  background: $card;
+  box-shadow: 0 2px 10px rgba(24, 24, 32, 0.05);
+}
+
+.row-card__thumb {
+  flex: none;
+  width: 62px;
+  height: 62px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: $bg;
+}
+
+.row-card__main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.row-card__title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.row-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.row-card__side {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.row-card__status {
+  font-size: 11px;
+}
+
+.row-card__status--active {
+  color: $green;
+}
+
+.row-card__status--swapped {
+  color: $text-weak;
+}
+
+.row-card__status--off {
+  color: $text-weak;
+}
+
+.row-card__status--liked {
+  color: $brand;
+}
+
+.row-card__action {
+  padding: 3px 9px;
+  border: 1px solid $border;
+  border-radius: 11px;
+  color: $text-sub;
+  font-size: 11px;
+}
+
+// ------------------------------------------------------------------ 空态
+
+.profile__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 46px 0;
+}
+
+.profile__empty-emoji {
+  font-size: 34px;
+}
+
+.profile__empty-text {
+  margin-top: 8px;
+  color: $text-weak;
+  font-size: 12px;
+}

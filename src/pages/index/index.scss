@@ -1,0 +1,81 @@
+.deck {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.deck-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 10px 16px 8px;
+}
+
+.deck-head__title {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.deck-head__meta {
+  color: $text-weak;
+  font-size: 11px;
+}
+
+.deck-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  padding: 0 16px;
+}
+
+.deck-empty-btn {
+  margin-top: 16px;
+  padding: 9px 22px;
+  border-radius: $radius-btn;
+  background: $brand;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: $shadow-brand;
+}
+
+// ------------------------------------------------------------------ 操作按钮
+
+.deck-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 52px;
+  padding: 18px 0 calc(14px + env(safe-area-inset-bottom));
+}
+
+.deck-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: $card;
+  transition: transform 120ms ease;
+
+  &:active {
+    transform: scale(0.9);
+  }
+}
+
+.deck-btn__icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.deck-btn--nope {
+  color: #9aa0a6;
+  box-shadow: 0 6px 18px rgba(24, 24, 32, 0.14);
+}
+
+.deck-btn--like {
+  color: $brand;
+  box-shadow: $shadow-brand;
+}
