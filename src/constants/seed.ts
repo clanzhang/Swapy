@@ -17,6 +17,16 @@ const now = Date.now()
 const minsAgo = (n: number) => now - n * 60_000
 const hoursAgo = (n: number) => now - n * 3_600_000
 
+/**
+ * 种子数据版本号。**每次改动 SEED_* 的内容都要 +1。**
+ *
+ * 为什么需要它：Mock 模式把数据持久化在本地 Storage 里，读回来时如果
+ * 直接信任存档，那么改完种子数据后老设备上永远是旧数据 —— 会表现成
+ * 「牌堆不对」「怎么点都不匹配」这类很难查的问题。
+ * 版本对不上就重新播种。
+ */
+export const SEED_VERSION = 1
+
 /** 当前登录用户（Mock 下由 login 创建） */
 export const SEED_ME: User = {
   _id: 'u_me',

@@ -11,6 +11,7 @@
 import assert from 'node:assert/strict'
 
 import { MAX_DISTANCE_KM } from '@/constants'
+import { SEED_SWIPES } from '@/constants/seed'
 import { createMockApi } from '@/services/mock'
 import { DAILY_QUOTA } from '@/utils/quota'
 
@@ -58,6 +59,26 @@ async function main() {
     assert.ok(
       page.list.length > DAILY_QUOTA,
       `池子只有 ${page.list.length} 张，配额是 ${DAILY_QUOTA} —— 用户会先「刷完了」而不是「额度用完了」`,
+    )
+  })
+
+  await step('冷启动时必须滑得到「能匹配」的卡', async () => {
+    // 种子里的 SEED_SWIPES 决定了谁会跟我匹配。如果这些物品被删了、
+    // 或者它们的主人一件在架物品都没有，新用户就会「怎么点喜欢都不匹配」，
+    // 表现上跟功能坏了一样。
+    const page = await api.getCards({ limit: 200 })
+    const reciprocalOwners = new Set(
+      SEED_SWIPES.filter((s) => s.direction === 'right').map((s) => s.fromUserId),
+    )
+    const matchable = page.list.filter((c) => reciprocalOwners.has(c.ownerId))
+
+    assert.ok(
+      reciprocalOwners.size >= 3,
+      `只有 ${reciprocalOwners.size} 个人预先右滑过我，冷启动的匹配体验太单薄`,
+    )
+    assert.ok(
+      matchable.length >= 3,
+      `牌堆里只有 ${matchable.length} 张点了会匹配，新用户很可能一直碰不到匹配`,
     )
   })
 

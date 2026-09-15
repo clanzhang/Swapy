@@ -7,6 +7,9 @@ import CategoryIcon from '@/components/CategoryIcon'
 import { Heart, List, Setting, User } from '@/components/Icon'
 import ItemImage from '@/components/ItemImage'
 import { CATEGORY_MAP, CONDITION_MAP, PRICE_RANGE_MAP, THEME } from '@/constants'
+import { USE_MOCK } from '@/config'
+import { resetMockData } from '@/services/mock'
+import { useDeckStore } from '@/store/deckStore'
 import { api } from '@/services'
 import { useUserStore } from '@/store/userStore'
 import type { CardItem, Item, ItemStatus } from '@/types'
@@ -75,6 +78,21 @@ export default function Profile() {
   }
 
   const activeCount = items.filter((i) => i.status === 'active').length
+
+  const handleReset = () => {
+    void Taro.showModal({
+      title: '重置演示数据',
+      content: '会清空本地的滑动记录、匹配和聊天，恢复到初始种子数据。',
+      confirmText: '重置',
+      confirmColor: '#FF6B35',
+      success: (res) => {
+        if (!res.confirm || !resetMockData()) return
+        void load()
+        void useDeckStore.getState().init()
+        void Taro.showToast({ title: '已重置', icon: 'success' })
+      },
+    })
+  }
 
   return (
     <View className='page profile'>
@@ -229,6 +247,12 @@ export default function Profile() {
           )}
 
           <View className='profile__safe-area' />
+
+          {USE_MOCK && (
+            <View className='profile__reset' onClick={handleReset}>
+              <Text>重置演示数据</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </View>

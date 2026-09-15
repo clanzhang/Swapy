@@ -103,6 +103,9 @@ assets/tab/              # TabBar 的 PNG（由 pnpm gen:tab-icons 生成，产�
   每日上限和刷新整点是常量，改的时候三处要对齐。**判定只在服务端做**：
   客户端只拿 `{ limit, used, remaining, resetAt }` 显示，不参与计算。
 - **图片切图用点击左右区域，不用横滑** —— 横滑手势留给「跳过 / 想要」。
+- **改了 `src/constants/seed.ts` 就要把 `SEED_VERSION` +1**。Mock 数据存在本地
+  Storage，版本对不上会自动重新播种；忘了加会导致老设备上一直是旧牌堆，
+  表现得像「功能坏了」。
 - **图标一律从 `@/components/Icon` 引入**，不要从 `@nutui/icons-react-taro`
   根导入。包的 sideEffects 让 barrel 无法 tree-shake，根导入会把 232 个图标
   全打进包；而且那个模块还会顺带引 189KB 的 iconfont 样式。

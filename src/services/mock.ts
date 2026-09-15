@@ -2,7 +2,7 @@ import Taro from '@tarojs/taro'
 
 import { DEFAULT_LOCATION } from '@/config'
 import { MAX_DISTANCE_KM, PRICE_RANGE_MAP } from '@/constants'
-import { SEED_ITEMS, SEED_ME, SEED_SWIPES, SEED_USERS } from '@/constants/seed'
+import { SEED_ITEMS, SEED_ME, SEED_SWIPES, SEED_USERS, SEED_VERSION } from '@/constants/seed'
 import type {
   CardItem,
   CardQuery,
@@ -39,6 +39,8 @@ interface MockDb {
   meId: string
   /** 每日「想要」配额。dayKey 决定什么时候重置。 */
   quota: { dayKey: string; used: number }
+  /** 存档对应的种子版本，对不上就重新播种 */
+  seedVersion: number
 }
 
 function seedDb(): MockDb {
@@ -50,6 +52,7 @@ function seedDb(): MockDb {
     messages: [],
     meId: SEED_ME._id,
     quota: { dayKey: quotaDayKey(Date.now()), used: 0 },
+    seedVersion: SEED_VERSION,
   }
 }
 
@@ -74,7 +77,9 @@ class MockApi implements SwapyApi {
       const raw = Taro.getStorageSync(DB_KEY)
       if (raw) {
         const parsed = JSON.parse(raw) as MockDb
-        if (parsed?.items?.length) {
+        // 种子数据改过就别用旧存档了，否则老设备上永远是旧牌堆，
+        // 而且表现成「怎么点都不匹配」这类很难查的问题
+        if (parsed?.items?.length && parsed.seedVersion === SEED_VERSION) {
           // 兼容旧版本的存档：补上后来才加的字段
           if (!parsed.quota) {
             parsed.quota = { dayKey: quotaDayKey(Date.now()), used: 0 }
@@ -495,8 +500,37 @@ class MockApi implements SwapyApi {
     // Mock 下直接用本地临时路径渲染，不出网
     return filePath
   }
+
+  // -------------------------------------------------------------------- 重置
+
+  /** 把数据恢复到初始种子状态（开发阶段清掉自己制造的一地鸡毛） */
+  resetToSeed() {
+    this.db = seedDb()
+    this.persist(this.db)
+    try {
+      Taro.setStorageSync(USER_KEY, JSON.stringify(this.me))
+    } catch {
+      // ignore
+    }
+  }
 }
 
+/**
+ * 当前实例的引用。
+ *
+ * 重置必须作用在同一个实例上（store 里持有的是它的引用），
+ * 而不是简单地清 Storage 后重建 —— 那样内存里的旧数据还在。
+ */
+let current: MockApi | null = null
+
 export function createMockApi(): SwapyApi {
-  return new MockApi()
+  current = new MockApi()
+  return current
+}
+
+/** 开发用：把 Mock 数据恢复到种子状态。非 Mock 模式下返回 false。 */
+export function resetMockData(): boolean {
+  if (!current) return false
+  current.resetToSeed()
+  return true
 }
