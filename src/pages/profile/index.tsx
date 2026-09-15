@@ -79,154 +79,157 @@ export default function Profile() {
   return (
     <View className='page profile'>
       <ScrollView className='profile__body' scrollY>
-        <View className='profile__card'>
-          <View className='profile__head'>
-            <View className='profile__avatar'>
-              <User size={26} color='#FFFFFF' />
-            </View>
-            <View className='profile__who'>
-              <Text className='profile__name'>{user?.nickname || '未登录'}</Text>
-              <Text className='profile__meta'>
-                {user?.city || '上海'} · 在架 {activeCount} 件
-              </Text>
-            </View>
-            <View className='profile__edit' onClick={() => setEditing((v) => !v)}>
-              <Setting size={13} color='#FFFFFF' />
-              <Text className='profile__edit-text'>{editing ? '收起' : '编辑资料'}</Text>
-            </View>
-          </View>
-
-          {editing && (
-            <View className='profile__editor'>
-              <Text className='profile__editor-label'>昵称</Text>
-              <Input
-                className='profile__editor-input'
-                value={nickname}
-                maxLength={12}
-                placeholder='给自己起个名字'
-                onChange={(v) => setNickname(v)}
-              />
-
-              <Text className='profile__editor-label'>城市</Text>
-              <View className='profile__cities'>
-                {CITIES.map((c) => (
-                  <View
-                    key={c}
-                    className={`profile__city ${city === c ? 'profile__city--on' : ''}`}
-                    onClick={() => setCity(c)}
-                  >
-                    <Text>{c}</Text>
-                  </View>
-                ))}
+        {/* scroll-view 在 webview 模式下不支持 padding，只能靠内层容器 */}
+        <View className='profile__inner'>
+          <View className='profile__card'>
+            <View className='profile__head'>
+              <View className='profile__avatar'>
+                <User size={26} color='#FFFFFF' />
               </View>
-
-              <Button
-                type='primary'
-                block
-                shape='round'
-                loading={saving}
-                onClick={() => void save()}
-              >
-                保存
-              </Button>
+              <View className='profile__who'>
+                <Text className='profile__name'>{user?.nickname || '未登录'}</Text>
+                <Text className='profile__meta'>
+                  {user?.city || '上海'} · 在架 {activeCount} 件
+                </Text>
+              </View>
+              <View className='profile__edit' onClick={() => setEditing((v) => !v)}>
+                <Setting size={13} color='#FFFFFF' />
+                <Text className='profile__edit-text'>{editing ? '收起' : '编辑资料'}</Text>
+              </View>
             </View>
-          )}
-        </View>
 
-        <View className='profile__tabs'>
-          <View
-            className={`profile__tab ${tab === 'items' ? 'profile__tab--on' : ''}`}
-            onClick={() => setTab('items')}
-          >
-            <List size={14} color={tab === 'items' ? THEME.primaryDeep : THEME.textSub} />
-            <Text className='profile__tab-text'>我的发布 {items.length}</Text>
-          </View>
-          <View
-            className={`profile__tab ${tab === 'wanted' ? 'profile__tab--on' : ''}`}
-            onClick={() => setTab('wanted')}
-          >
-            <Heart size={14} color={tab === 'wanted' ? THEME.primaryDeep : THEME.textSub} />
-            <Text className='profile__tab-text'>我的想要 {wanted.length}</Text>
-          </View>
-        </View>
+            {editing && (
+              <View className='profile__editor'>
+                <Text className='profile__editor-label'>昵称</Text>
+                <Input
+                  className='profile__editor-input'
+                  value={nickname}
+                  maxLength={12}
+                  placeholder='给自己起个名字'
+                  onChange={(v) => setNickname(v)}
+                />
 
-        {tab === 'items' ? (
-          items.length ? (
-            items.map((item) => {
-              const category = CATEGORY_MAP[item.category]
+                <Text className='profile__editor-label'>城市</Text>
+                <View className='profile__cities'>
+                  {CITIES.map((c) => (
+                    <View
+                      key={c}
+                      className={`profile__city ${city === c ? 'profile__city--on' : ''}`}
+                      onClick={() => setCity(c)}
+                    >
+                      <Text>{c}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                <Button
+                  type='primary'
+                  block
+                  shape='round'
+                  loading={saving}
+                  onClick={() => void save()}
+                >
+                  保存
+                </Button>
+              </View>
+            )}
+          </View>
+
+          <View className='profile__tabs'>
+            <View
+              className={`profile__tab ${tab === 'items' ? 'profile__tab--on' : ''}`}
+              onClick={() => setTab('items')}
+            >
+              <List size={14} color={tab === 'items' ? THEME.primaryDeep : THEME.textSub} />
+              <Text className='profile__tab-text'>我的发布 {items.length}</Text>
+            </View>
+            <View
+              className={`profile__tab ${tab === 'wanted' ? 'profile__tab--on' : ''}`}
+              onClick={() => setTab('wanted')}
+            >
+              <Heart size={14} color={tab === 'wanted' ? THEME.primaryDeep : THEME.textSub} />
+              <Text className='profile__tab-text'>我的想要 {wanted.length}</Text>
+            </View>
+          </View>
+
+          {tab === 'items' ? (
+            items.length ? (
+              items.map((item) => {
+                const category = CATEGORY_MAP[item.category]
+                return (
+                  <View key={item._id} className='row-card'>
+                    <View className='row-card__thumb'>
+                      <ItemImage src={item.images[0]} emoji={category?.emoji ?? '📦'} />
+                    </View>
+                    <View className='row-card__main'>
+                      <Text className='row-card__title ellipsis'>{item.title}</Text>
+                      <View className='row-card__tags'>
+                        <View className='tag'>
+                          <CategoryIcon category={item.category} size={11} color={THEME.primary} />
+                          <Text className='tag__text'>{category?.label}</Text>
+                        </View>
+                        <View className='tag tag-plain'>
+                          <Text>{CONDITION_MAP[item.condition]?.label}</Text>
+                        </View>
+                        <View className='tag tag-plain'>
+                          <Text>¥{PRICE_RANGE_MAP[item.priceRange]?.label}</Text>
+                        </View>
+                      </View>
+                    </View>
+                    <View className='row-card__side'>
+                      <Text className={`row-card__status row-card__status--${item.status}`}>
+                        {STATUS_LABEL[item.status]}
+                      </Text>
+                      {item.status !== 'swapped' && (
+                        <View className='row-card__action' onClick={() => void toggleStatus(item)}>
+                          <Text>{item.status === 'off' ? '重新上架' : '下架'}</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                )
+              })
+            ) : (
+              <View className='profile__empty'>
+                <Text className='profile__empty-emoji'>📦</Text>
+                <Text className='profile__empty-text'>还没有发布过物品</Text>
+              </View>
+            )
+          ) : wanted.length ? (
+            wanted.map((card) => {
+              const category = CATEGORY_MAP[card.category]
               return (
-                <View key={item._id} className='row-card'>
+                <View key={card._id} className='row-card'>
                   <View className='row-card__thumb'>
-                    <ItemImage src={item.images[0]} emoji={category?.emoji ?? '📦'} />
+                    <ItemImage src={card.images[0]} emoji={category?.emoji ?? '📦'} />
                   </View>
                   <View className='row-card__main'>
-                    <Text className='row-card__title ellipsis'>{item.title}</Text>
+                    <Text className='row-card__title ellipsis'>{card.title}</Text>
                     <View className='row-card__tags'>
                       <View className='tag'>
-                        <CategoryIcon category={item.category} size={11} color={THEME.primary} />
+                        <CategoryIcon category={card.category} size={11} color={THEME.primary} />
                         <Text className='tag__text'>{category?.label}</Text>
                       </View>
                       <View className='tag tag-plain'>
-                        <Text>{CONDITION_MAP[item.condition]?.label}</Text>
-                      </View>
-                      <View className='tag tag-plain'>
-                        <Text>¥{PRICE_RANGE_MAP[item.priceRange]?.label}</Text>
+                        <Text>{formatDistance(card.distanceKm)}</Text>
                       </View>
                     </View>
                   </View>
                   <View className='row-card__side'>
-                    <Text className={`row-card__status row-card__status--${item.status}`}>
-                      {STATUS_LABEL[item.status]}
-                    </Text>
-                    {item.status !== 'swapped' && (
-                      <View className='row-card__action' onClick={() => void toggleStatus(item)}>
-                        <Text>{item.status === 'off' ? '重新上架' : '下架'}</Text>
-                      </View>
-                    )}
+                    <Text className='row-card__status row-card__status--liked'>已想要</Text>
                   </View>
                 </View>
               )
             })
           ) : (
             <View className='profile__empty'>
-              <Text className='profile__empty-emoji'>📦</Text>
-              <Text className='profile__empty-text'>还没有发布过物品</Text>
+              <Text className='profile__empty-emoji'>💛</Text>
+              <Text className='profile__empty-text'>还没有想要过别人的物品</Text>
             </View>
-          )
-        ) : wanted.length ? (
-          wanted.map((card) => {
-            const category = CATEGORY_MAP[card.category]
-            return (
-              <View key={card._id} className='row-card'>
-                <View className='row-card__thumb'>
-                  <ItemImage src={card.images[0]} emoji={category?.emoji ?? '📦'} />
-                </View>
-                <View className='row-card__main'>
-                  <Text className='row-card__title ellipsis'>{card.title}</Text>
-                  <View className='row-card__tags'>
-                    <View className='tag'>
-                      <CategoryIcon category={card.category} size={11} color={THEME.primary} />
-                      <Text className='tag__text'>{category?.label}</Text>
-                    </View>
-                    <View className='tag tag-plain'>
-                      <Text>{formatDistance(card.distanceKm)}</Text>
-                    </View>
-                  </View>
-                </View>
-                <View className='row-card__side'>
-                  <Text className='row-card__status row-card__status--liked'>已想要</Text>
-                </View>
-              </View>
-            )
-          })
-        ) : (
-          <View className='profile__empty'>
-            <Text className='profile__empty-emoji'>💛</Text>
-            <Text className='profile__empty-text'>还没有想要过别人的物品</Text>
-          </View>
-        )}
+          )}
 
-        <View className='profile__safe-area' />
+          <View className='profile__safe-area' />
+        </View>
       </ScrollView>
     </View>
   )

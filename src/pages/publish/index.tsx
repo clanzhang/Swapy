@@ -140,70 +140,73 @@ export default function Publish() {
   return (
     <View className='page publish'>
       <ScrollView className='publish__body' scrollY>
-        <Field label='物品图片' hint={`${images.length}/${MAX_ITEM_IMAGES}`}>
-          <View className='uploader'>
-            {images.map((src, i) => (
-              <View key={`${src}-${i}`} className='uploader__cell'>
-                <ItemImage
-                  src={src}
-                  emoji={category ? (CATEGORIES.find((c) => c.key === category)?.emoji ?? '📦') : '📦'}
-                  className='uploader__img'
-                />
-                <View
-                  className='uploader__remove'
-                  onClick={() => setImages((prev) => prev.filter((_, idx) => idx !== i))}
-                >
-                  <Close size={12} color='#FFFFFF' />
-                </View>
-                {i === 0 && (
-                  <View className='uploader__cover'>
-                    <Text>封面</Text>
+        {/* scroll-view 在 webview 模式下不支持 padding，只能靠内层容器 */}
+        <View className='publish__inner'>
+          <Field label='物品图片' hint={`${images.length}/${MAX_ITEM_IMAGES}`}>
+            <View className='uploader'>
+              {images.map((src, i) => (
+                <View key={`${src}-${i}`} className='uploader__cell'>
+                  <ItemImage
+                    src={src}
+                    emoji={category ? (CATEGORIES.find((c) => c.key === category)?.emoji ?? '📦') : '📦'}
+                    className='uploader__img'
+                  />
+                  <View
+                    className='uploader__remove'
+                    onClick={() => setImages((prev) => prev.filter((_, idx) => idx !== i))}
+                  >
+                    <Close size={12} color='#FFFFFF' />
                   </View>
-                )}
-              </View>
-            ))}
-            {images.length < MAX_ITEM_IMAGES && (
-              <View className='uploader__cell uploader__cell--add' onClick={() => void chooseImages()}>
-                <Plus size={22} color={THEME.primary} />
-                <Text className='uploader__tip'>拍照 / 相册</Text>
-              </View>
-            )}
-          </View>
-        </Field>
+                  {i === 0 && (
+                    <View className='uploader__cover'>
+                      <Text>封面</Text>
+                    </View>
+                  )}
+                </View>
+              ))}
+              {images.length < MAX_ITEM_IMAGES && (
+                <View className='uploader__cell uploader__cell--add' onClick={() => void chooseImages()}>
+                  <Plus size={22} color={THEME.primary} />
+                  <Text className='uploader__tip'>拍照 / 相册</Text>
+                </View>
+              )}
+            </View>
+          </Field>
 
-        <Field label='物品名称'>
-          <Input
-            className='field__input'
-            value={title}
-            maxLength={30}
-            placeholder='例如：Switch OLED 白色 日版'
-            onChange={(v) => setTitle(v)}
-          />
-        </Field>
+          <Field label='物品名称'>
+            <Input
+              className='field__input'
+              value={title}
+              maxLength={30}
+              placeholder='例如：Switch OLED 白色 日版'
+              onChange={(v) => setTitle(v)}
+            />
+          </Field>
 
-        <Field label='品类'>
-          <ChipGroup<Category> options={CATEGORIES} value={category} onChange={setCategory} withIcon />
-        </Field>
+          <Field label='品类'>
+            <ChipGroup<Category> options={CATEGORIES} value={category} onChange={setCategory} withIcon />
+          </Field>
 
-        <Field label='成色'>
-          <ChipGroup<Condition> options={CONDITIONS} value={condition} onChange={setCondition} />
-        </Field>
+          <Field label='成色'>
+            <ChipGroup<Condition> options={CONDITIONS} value={condition} onChange={setCondition} />
+          </Field>
 
-        <Field label='估值区间' hint='只和区间有交集的物品互相推荐'>
-          <ChipGroup<PriceRange> options={PRICE_RANGES} value={priceRange} onChange={setPriceRange} />
-        </Field>
+          <Field label='估值区间' hint='只和区间有交集的物品互相推荐'>
+            <ChipGroup<PriceRange> options={PRICE_RANGES} value={priceRange} onChange={setPriceRange} />
+          </Field>
 
-        <Field label='物品描述' hint={`${description.length}/200`}>
-          <TextArea
-            className='field__textarea'
-            value={description}
-            maxLength={200}
-            placeholder='说说使用情况、有无磕碰、配件是否齐全…'
-            onChange={(v) => setDescription(v)}
-          />
-        </Field>
+          <Field label='物品描述' hint={`${description.length}/200`}>
+            <TextArea
+              className='field__textarea'
+              value={description}
+              maxLength={200}
+              placeholder='说说使用情况、有无磕碰、配件是否齐全…'
+              onChange={(v) => setDescription(v)}
+            />
+          </Field>
 
-        <View className='publish__safe-area' />
+          <View className='publish__safe-area' />
+        </View>
       </ScrollView>
 
       <View className='publish__footer'>

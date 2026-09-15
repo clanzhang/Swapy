@@ -21,7 +21,11 @@ export default defineConfig(async (merge, { command, mode }) => {
     },
     sourceRoot: 'src',
     outputRoot: 'dist',
-    plugins: [],
+    // NutUI React Taro 的组件（Button/Input/TextArea…）渲染的是 HTML 标签
+    // （div / span / input），而 Taro 的内置组件表里没有这些。
+    // 不装这个插件，小程序会在运行时抛 `Template tmpl_0_div not found`，
+    // 对应区域直接不渲染 —— 而且只在开发者工具/真机的控制台里才看得到。
+    plugins: ['@tarojs/plugin-html'],
     /**
      * 编译期常量。
      *

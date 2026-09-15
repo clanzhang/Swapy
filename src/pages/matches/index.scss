@@ -1,8 +1,7 @@
 .matches {
   flex: 1;
   min-height: 0;
-  padding: 0 16px;
-}
+  }
 
 .matches__hint {
   padding: 10px 2px 8px;
@@ -107,4 +106,8 @@
   background: $bg;
   color: $text-sub;
   font-size: 12px;
+}
+
+.matches__inner {
+  padding: 0 16px;
 }

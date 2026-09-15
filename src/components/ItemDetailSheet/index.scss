@@ -80,8 +80,7 @@
 .sheet__body {
   flex: 1;
   min-height: 0;
-  padding: 14px 16px 0;
-}
+  }
 
 .sheet__title {
   display: block;
@@ -182,4 +181,8 @@
   background: $brand;
   color: #fff;
   box-shadow: $shadow-brand;
+}
+
+.sheet__inner {
+  padding: 14px 16px 0;
 }

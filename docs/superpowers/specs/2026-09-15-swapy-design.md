@@ -400,7 +400,43 @@ EventEmitter。两者签名一致，聊天页不需要区分。
 
 需要「无头像时显示昵称首字」的兜底。自绘 6 行样式比适配组件行为更可控。
 
-### 8.7 图标：两套资源，三个坑
+### 8.7 NutUI 的两类运行时要求
+
+#### `@tarojs/plugin-html` 不能拆
+
+NutUI React Taro 的组件（Button / Input / TextArea …）渲染的是 **HTML 标签**：
+
+```js
+// node_modules/@nutui/nutui-react-taro/dist/esm/button.taro-*.js
+i.createElement("div", { className: "nut-button-wrap" }, ...)
+```
+
+而 Taro 的内置组件表里**没有 `div`**（`@tarojs/shared` 里搜不到）。
+Taro 的模板解析（`utils.wxs` 里的 `xs.a`）遇到未注册的节点名会强制降级到
+`l = 0`，返回 `tmpl_0_div` —— 而产物里不存在这个模板。
+
+小程序的表现是：**控制台报 `Template tmpl_0_div not found`，对应区域直接不渲染**，
+而构建是成功的。正好符合「构建绿了但产品是坏的」这一类。
+
+解法是启用 `@tarojs/plugin-html`。它挂在 `modifyHydrateData` 钩子上，
+在模板查找之前把节点名改掉（`blockElements` → `view`，`inlineElements` → `text`，
+`specialElements` → 各自的映射）。
+
+注意：**装了插件之后产物里依然有 `createElement("div")`**（实测 5 处），
+因为改写发生在运行时。所以 `scripts/check-dist.cjs` 只能查「配置里有没有插件」
+而不是查产物里有没有 `div` —— 而且这条检查真的会拦（已实测）。
+
+#### `scroll-view` 不支持 `padding`
+
+webview 渲染模式下 `padding` 会被**静默忽略**，只给一条 warning，
+结果是内容直接贴到屏幕边缘。需要内边距时只能在里面包一层 View：
+
+```tsx
+<ScrollView className='publish__body' scrollY>
+  <View className='publish__inner'>   {/* padding 写这里 */}
+```
+
+### 8.8 图标：两套资源，三个坑
 
 #### 页面内图标和 TabBar 图标不能共用
 
@@ -447,7 +483,7 @@ tree-shake，从根导入会把 **232 个图标全部打进包**，并且顺带�
 NutUI 图标包里没有 `Music` / `Sad` / `Left`，分别用 `Microphone` /
 `FaceMild` / `ArrowLeft` 代替。规格里的 `PhotoGraph` 实际叫 `Photograph`。
 
-### 8.7 小程序里不能出现裸的 `process.env`
+### 8.9 小程序里不能出现裸的 `process.env`
 
 **症状**：小程序一启动就白屏，报 `ReferenceError: process is not defined`。
 
@@ -464,7 +500,7 @@ NutUI 图标包里没有 `Music` / `Sad` / `Left`，分别用 `Microphone` /
 **防回归**：`scripts/check-dist.cjs` 在每次构建后扫产物里有没有残留的
 `process.*`，有就 fail。这类「只在运行时暴露」的问题只能靠静态闸门挡住。
 
-### 8.8 验证分三层
+### 8.10 验证分三层
 
 | 层 | 手段 | 挡住的错误 |
 | --- | --- | --- |
@@ -530,9 +566,9 @@ UI 层有 bug 肉眼可见，匹配层有 bug 要等用户投诉。
 
 ### 产物体检
 
-`pnpm verify:dist` —— 构建后扫产物里有没有残留的 `process.*`。
-小程序运行时没有 `process`，任何漏网的引用都会在启动瞬间白屏，
-而**构建是成功的**。详见 8.7。
+`pnpm verify:dist` —— 构建后扫两类东西：残留的 `process.*`，
+以及「产物里有 HTML 标签但没启用 `@tarojs/plugin-html`」。
+两者都会让小程序在运行时报错，而**构建是成功的**。详见 8.7 和 8.9。
 
 ### 图标验证
 

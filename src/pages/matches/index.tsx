@@ -47,66 +47,69 @@ export default function Matches() {
   return (
     <View className='page'>
       <ScrollView className='matches' scrollY>
-        <View className='matches__hint'>
-          <Text>互相想要才会匹配成功，共 {list.length} 个</Text>
+        {/* scroll-view 在 webview 模式下不支持 padding，只能靠内层容器 */}
+        <View className='matches__inner'>
+          <View className='matches__hint'>
+            <Text>互相想要才会匹配成功，共 {list.length} 个</Text>
+          </View>
+
+          {list.map((match) => {
+            const mine = CATEGORY_MAP[match.myItem.category]?.emoji ?? '📦'
+            const peer = CATEGORY_MAP[match.peerItem.category]?.emoji ?? '📦'
+            return (
+              <View
+                key={match._id}
+                className='match-row'
+                onClick={() => openChat(match._id)}
+              >
+                <View className='match-row__head'>
+                  <View className='match-row__avatar'>
+                    <Text>{match.peer.nickname.slice(0, 1)}</Text>
+                  </View>
+                  <View className='match-row__who'>
+                    <Text className='match-row__name'>{match.peer.nickname}</Text>
+                    <Text className='match-row__time'>匹配于 {fromNow(match.createdAt)}</Text>
+                  </View>
+                  <View className='match-row__cta'>
+                    <Text>去聊天 ›</Text>
+                  </View>
+                </View>
+
+                <View className='match-row__items'>
+                  <View className='match-row__item'>
+                    <View className='match-row__thumb'>
+                      <ItemImage src={match.myItem.images[0]} emoji={mine} />
+                    </View>
+                    <Text className='match-row__item-title ellipsis'>{match.myItem.title}</Text>
+                  </View>
+
+                  <View className='match-row__swap'>
+                    <Text>⇄</Text>
+                  </View>
+
+                  <View className='match-row__item'>
+                    <View className='match-row__thumb'>
+                      <ItemImage src={match.peerItem.images[0]} emoji={peer} />
+                    </View>
+                    <Text className='match-row__item-title ellipsis'>{match.peerItem.title}</Text>
+                  </View>
+                </View>
+
+                <View className='match-row__last'>
+                  <Text className='ellipsis'>
+                    {match.lastMessage
+                      ? `${match.lastMessage.fromUserId === match.peer._id ? '' : '我：'}${
+                          match.lastMessage.type === 'image' ? '[图片]' : match.lastMessage.content
+                        }`
+                      : '打个招呼，聊聊怎么换吧'}
+                  </Text>
+                </View>
+              </View>
+            )
+          })}
+
+          <View className='matches__safe-area' />
         </View>
-
-        {list.map((match) => {
-          const mine = CATEGORY_MAP[match.myItem.category]?.emoji ?? '📦'
-          const peer = CATEGORY_MAP[match.peerItem.category]?.emoji ?? '📦'
-          return (
-            <View
-              key={match._id}
-              className='match-row'
-              onClick={() => openChat(match._id)}
-            >
-              <View className='match-row__head'>
-                <View className='match-row__avatar'>
-                  <Text>{match.peer.nickname.slice(0, 1)}</Text>
-                </View>
-                <View className='match-row__who'>
-                  <Text className='match-row__name'>{match.peer.nickname}</Text>
-                  <Text className='match-row__time'>匹配于 {fromNow(match.createdAt)}</Text>
-                </View>
-                <View className='match-row__cta'>
-                  <Text>去聊天 ›</Text>
-                </View>
-              </View>
-
-              <View className='match-row__items'>
-                <View className='match-row__item'>
-                  <View className='match-row__thumb'>
-                    <ItemImage src={match.myItem.images[0]} emoji={mine} />
-                  </View>
-                  <Text className='match-row__item-title ellipsis'>{match.myItem.title}</Text>
-                </View>
-
-                <View className='match-row__swap'>
-                  <Text>⇄</Text>
-                </View>
-
-                <View className='match-row__item'>
-                  <View className='match-row__thumb'>
-                    <ItemImage src={match.peerItem.images[0]} emoji={peer} />
-                  </View>
-                  <Text className='match-row__item-title ellipsis'>{match.peerItem.title}</Text>
-                </View>
-              </View>
-
-              <View className='match-row__last'>
-                <Text className='ellipsis'>
-                  {match.lastMessage
-                    ? `${match.lastMessage.fromUserId === match.peer._id ? '' : '我：'}${
-                        match.lastMessage.type === 'image' ? '[图片]' : match.lastMessage.content
-                      }`
-                    : '打个招呼，聊聊怎么换吧'}
-                </Text>
-              </View>
-            </View>
-          )
-        })}
-
-        <View className='matches__safe-area' />
       </ScrollView>
     </View>
   )

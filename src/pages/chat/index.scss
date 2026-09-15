@@ -48,8 +48,7 @@
 .chat__list {
   flex: 1;
   min-height: 0;
-  padding: 0 14px;
-}
+  }
 
 .chat__tip {
   padding: 10px 0 14px;
@@ -181,4 +180,8 @@
 .chat__send--on {
   background: $brand;
   color: #fff;
+}
+
+.chat__inner {
+  padding: 0 14px;
 }

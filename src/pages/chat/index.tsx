@@ -115,41 +115,44 @@ export default function Chat() {
         scrollWithAnimation
         scrollIntoView={scrollIntoView}
       >
-        <View className='chat__tip'>
-          <Text>匹配成功，聊聊怎么换吧 · 建议线下公共场所当面交换</Text>
-        </View>
+        {/* scroll-view 在 webview 模式下不支持 padding，只能靠内层容器 */}
+        <View className='chat__inner'>
+          <View className='chat__tip'>
+            <Text>匹配成功，聊聊怎么换吧 · 建议线下公共场所当面交换</Text>
+          </View>
 
-        {messages.map((msg) => {
-          const mine = msg.fromUserId === me?._id
-          return (
-            <View
-              key={msg._id}
-              id={`msg-${msg._id}`}
-              className={`bubble-row ${mine ? 'bubble-row--mine' : ''}`}
-            >
-              {!mine && (
-                <View className='bubble-avatar'>
-                  <Text>{match?.peer.nickname.slice(0, 1) ?? '?'}</Text>
-                </View>
-              )}
-              <View className={`bubble ${mine ? 'bubble--mine' : ''}`}>
-                {msg.type === 'image' ? (
-                  <Image
-                    className='bubble__image'
-                    src={msg.content}
-                    mode='widthFix'
-                    onClick={() => void Taro.previewImage({ urls: [msg.content] })}
-                  />
-                ) : (
-                  <Text className='bubble__text'>{msg.content}</Text>
+          {messages.map((msg) => {
+            const mine = msg.fromUserId === me?._id
+            return (
+              <View
+                key={msg._id}
+                id={`msg-${msg._id}`}
+                className={`bubble-row ${mine ? 'bubble-row--mine' : ''}`}
+              >
+                {!mine && (
+                  <View className='bubble-avatar'>
+                    <Text>{match?.peer.nickname.slice(0, 1) ?? '?'}</Text>
+                  </View>
                 )}
-                <Text className='bubble__time'>{clockTime(msg.createdAt)}</Text>
+                <View className={`bubble ${mine ? 'bubble--mine' : ''}`}>
+                  {msg.type === 'image' ? (
+                    <Image
+                      className='bubble__image'
+                      src={msg.content}
+                      mode='widthFix'
+                      onClick={() => void Taro.previewImage({ urls: [msg.content] })}
+                    />
+                  ) : (
+                    <Text className='bubble__text'>{msg.content}</Text>
+                  )}
+                  <Text className='bubble__time'>{clockTime(msg.createdAt)}</Text>
+                </View>
               </View>
-            </View>
-          )
-        })}
+            )
+          })}
 
-        <View className='chat__safe-area' />
+          <View className='chat__safe-area' />
+        </View>
       </ScrollView>
 
       <View className='chat__bar'>

@@ -60,6 +60,9 @@ importers:
       '@tarojs/plugin-framework-react':
         specifier: 3.6.40
         version: 3.6.40(@tarojs/runtime@3.6.40(@tarojs/shared@3.6.40))(@tarojs/shared@3.6.40)(@tarojs/taro@3.6.40(@tarojs/helper@3.6.40(supports-color@8.1.1))(@tarojs/runtime@3.6.40(@tarojs/shared@3.6.40))(@types/react@18.3.31)(postcss@8.5.28))(react-refresh@0.11.0)(react@18.3.1)(supports-color@8.1.1)
+      '@tarojs/plugin-html':
+        specifier: 3.6.40
+        version: 3.6.40(@tarojs/taro@3.6.40(@tarojs/helper@3.6.40(supports-color@8.1.1))(@tarojs/runtime@3.6.40(@tarojs/shared@3.6.40))(@types/react@18.3.31)(postcss@8.5.28))(supports-color@8.1.1)
       '@tarojs/taro-loader':
         specifier: 3.6.40
         version: 3.6.40(@tarojs/runtime@3.6.40(@tarojs/shared@3.6.40))(@types/react@18.3.31)(postcss@8.5.28)(supports-color@8.1.1)
@@ -1516,6 +1519,9 @@ packages:
         optional: true
       react-refresh:
         optional: true
+
+  '@tarojs/plugin-html@3.6.40':
+    resolution: {integrity: sha512-FgzotZ01umooJi1W8vOLzsLODskwSq0SKE+29OIi68n7qE9olQWbm+QHuIFnZGBi/z/JsE/g84sERLozVZxSCg==}
 
   '@tarojs/plugin-platform-alipay@3.6.40':
     resolution: {integrity: sha512-I6rhYscbodFHJn10lVfx00HP4socTE63kpQfGNHPOa/TnOKyhLuP3kl8q3mUDdx5aN31D7SAbkClcCFQ3po4eg==}
@@ -7844,6 +7850,20 @@ snapshots:
     optionalDependencies:
       react: 18.3.1
       react-refresh: 0.11.0
+    transitivePeerDependencies:
+      - '@swc/helpers'
+      - '@tarojs/taro'
+      - supports-color
+
+  '@tarojs/plugin-html@3.6.40(@tarojs/taro@3.6.40(@tarojs/helper@3.6.40(supports-color@8.1.1))(@tarojs/runtime@3.6.40(@tarojs/shared@3.6.40))(@types/react@18.3.31)(postcss@8.5.28))(supports-color@8.1.1)':
+    dependencies:
+      '@babel/generator': 7.29.8
+      '@babel/parser': 7.29.8
+      '@babel/traverse': 7.29.8(supports-color@8.1.1)
+      '@babel/types': 7.29.8
+      '@tarojs/runtime': 3.6.40(@tarojs/shared@3.6.40)
+      '@tarojs/service': 3.6.40(@tarojs/shared@3.6.40)(@tarojs/taro@3.6.40(@tarojs/helper@3.6.40(supports-color@8.1.1))(@tarojs/runtime@3.6.40(@tarojs/shared@3.6.40))(@types/react@18.3.31)(postcss@8.5.28))(supports-color@8.1.1)
+      '@tarojs/shared': 3.6.40
     transitivePeerDependencies:
       - '@swc/helpers'
       - '@tarojs/taro'

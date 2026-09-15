@@ -6,8 +6,7 @@
 .publish__body {
   flex: 1;
   min-height: 0;
-  padding: 12px 0 0;
-}
+  }
 
 .publish__safe-area {
   height: 20px;
@@ -155,4 +154,8 @@
   padding: 10px 16px calc(12px + env(safe-area-inset-bottom));
   border-top: 1px solid $border;
   background: $card;
+}
+
+.publish__inner {
+  padding: 12px 0 0;
 }

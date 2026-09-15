@@ -37,7 +37,8 @@ export default function Index() {
   const topRef = useRef<SwipeCardHandle>(null)
   const [detailCard, setDetailCard] = useState<CardItem | null>(null)
   const [cardWidth] = useState(() => {
-    const info = Taro.getSystemInfoSync()
+    // getSystemInfoSync 已废弃（会在控制台报警告），用 getWindowInfo
+    const info = Taro.getWindowInfo()
     return (info.windowWidth || 375) - PAGE_PADDING * 2
   })
 

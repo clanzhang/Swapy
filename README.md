@@ -41,7 +41,7 @@ pnpm build:weapp    # 构建到 dist/
 | `pnpm verify:gesture` | 滑动手势验证（12 项断言 + 参数表） |
 | `pnpm verify:quota` | 每日配额验证（10 项断言） |
 | `pnpm verify:icons` | 图标验证（渲染标签 / 样式序列化 / PNG 透明度和颜色） |
-| `pnpm verify:dist` | 产物体检 |
+| `pnpm verify:dist` | 产物体检（残留的 process / HTML 标签映射） |
 
 ## 切换到真实云开发
 
@@ -108,6 +108,11 @@ assets/tab/              # TabBar 的 PNG（由 pnpm gen:tab-icons 生成，产�
   全打进包；而且那个模块还会顺带引 189KB 的 iconfont 样式。
 - **TabBar 图标是 PNG，页面内图标是组件**，两套资源不能共用：
   原生 tabBar 只认本地图片。改图后跑 `pnpm gen:tab-icons` 重新生成。
+- **NutUI 组件渲染的是 HTML 标签**（`div` / `span` / `input`），Taro 内置组件表里
+  没有这些，靠 `config/index.ts` 里的 `@tarojs/plugin-html` 在运行时映射成
+  `view` / `text`。这个插件不能拆，拆了小面积区域会直接不渲染。
+- **`scroll-view` 不能带 `padding`**，webview 模式下会被静默忽略（内容贴边）。
+  需要内边距就包一层子 View。
 - **新增 NutUI 组件要在 `src/styles/nutui.ts` 补一行样式引入**，否则组件没有样式。
   全量引入会让 wxss 从 24KB 涨到 259KB。
 - **新增 `process.env` 变量要在 `config/index.ts` 的 `defineConstants` 里声明**，
