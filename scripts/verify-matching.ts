@@ -10,15 +10,12 @@
  */
 import assert from 'node:assert/strict'
 
-import { SEED_SWIPES } from '@/constants/seed'
+import { SEED_ITEMS, SEED_SWIPES, SEED_USERS } from '@/constants/seed'
 import type { Category } from '@/types'
 import { createMockApi } from '@/services/mock'
 import { DAILY_QUOTA } from '@/utils/quota'
 
 const api = createMockApi()
-
-/** 种子里预置了「已经右滑过我」的三个人 */
-const RECIPROCAL_OWNERS = ['u_azhe', 'u_mumu', 'u_xiaoyu']
 
 async function step(title: string, fn: () => Promise<void>) {
   await fn()
@@ -84,8 +81,16 @@ async function main() {
     )
     const matchable = cards.filter((c) => reciprocalOwners.has(c.ownerId))
 
-    assert.ok(reciprocalOwners.size >= 3, `只有 ${reciprocalOwners.size} 个人预先右滑过我`)
-    assert.ok(matchable.length >= 3, `牌堆里只有 ${matchable.length} 张点了会匹配`)
+    // 匹配是按「用户对」唯一的，同一对只匹配一次。
+    // 预置的人太少的话，全部匹配完之后再点喜欢就永远不匹配了 ——
+    // 演示时看起来就像功能坏了。所以要求覆盖全部同城用户。
+    const sameCityOwners = new Set(cards.map((c) => c.ownerId))
+    assert.equal(
+      reciprocalOwners.size,
+      sameCityOwners.size,
+      `只有 ${reciprocalOwners.size} 个人预先右滑过我，但有 ${sameCityOwners.size} 个同城用户 —— 匹配完就没了`,
+    )
+    assert.ok(matchable.length >= 10, `牌堆里只有 ${matchable.length} 张点了会匹配`)
   })
 
   await step('翻页不漏卡：边翻边滑也要能拿满整个池子', async () => {
@@ -140,9 +145,13 @@ async function main() {
   })
 
   await step('单向右滑不匹配（对方没想要我的东西）', async () => {
-    const cards = await pool()
-    const target = cards.find((c) => !RECIPROCAL_OWNERS.includes(c.ownerId))
-    assert.ok(target, '前置条件：应该存在一个没有右滑过我的用户')
+    // 同城用户现在都预置了「右滑过我」，所以拿外地用户来验证单向不匹配。
+    // swipe 是按物品 ID 查的，不经过同城筛选，所以能直接对它发请求。
+    const target = SEED_ITEMS.find((i) => {
+      const owner = SEED_USERS.find((u) => u._id === i.ownerId)
+      return owner && owner.city !== '上海' && i.status === 'active'
+    })
+    assert.ok(target, '前置条件：应该存在一个外地物品')
 
     const result = await api.swipe({
       toItemId: target._id,
@@ -150,6 +159,7 @@ async function main() {
       direction: 'right',
     })
     assert.equal(result.matched, false, '只有我单方面想要时不该匹配')
+    assert.ok(!result.matchId, '不匹配就不该带回 matchId')
   })
 
   await step('互相右滑才匹配成功', async () => {

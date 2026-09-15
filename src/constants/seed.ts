@@ -25,7 +25,7 @@ const hoursAgo = (n: number) => now - n * 3_600_000
  * 「牌堆不对」「怎么点都不匹配」这类很难查的问题。
  * 版本对不上就重新播种。
  */
-export const SEED_VERSION = 2
+export const SEED_VERSION = 3
 
 /** 当前登录用户（Mock 下由 login 创建） */
 export const SEED_ME: User = {
@@ -283,10 +283,14 @@ export const SEED_ITEMS: Item[] = [
 ]
 
 /**
- * 预置一条「对方已经右滑过我」的记录。
+ * 预置「对方已经右滑过我」的记录。
  *
- * 目的是让新用户滑到阿哲/木木/小鱼的物品时能命中匹配、看到完整闭环，
- * 而不是滑了几十张都毫无反馈 —— 冷启动阶段最怕这个。
+ * 目的：让新用户滑到这些人的物品时能命中匹配、看到完整闭环。
+ * 冷启动阶段最怕「滑了几十张毫无反馈」。
+ *
+ * **为什么覆盖了全部 7 个同城用户**：匹配是按「用户对」唯一的，同一对只匹配
+ * 一次。之前只预置了 3 个人，把 3 对都匹配完之后，再点喜欢就永远不会匹配了 ——
+ * 演示的时候看起来就像「匹配功能坏了」。这是真实踩过的坑。
  */
 export const SEED_SWIPES: Swipe[] = [
   {
@@ -312,5 +316,37 @@ export const SEED_SWIPES: Swipe[] = [
     toUserId: 'u_me',
     direction: 'right',
     createdAt: minsAgo(120),
+  },
+  {
+    _id: 'sw_kk_kindle',
+    fromUserId: 'u_kk',
+    toItemId: 'it_mine_kindle',
+    toUserId: 'u_me',
+    direction: 'right',
+    createdAt: minsAgo(150),
+  },
+  {
+    _id: 'sw_lin_kindle',
+    fromUserId: 'u_lin',
+    toItemId: 'it_mine_kindle',
+    toUserId: 'u_me',
+    direction: 'right',
+    createdAt: minsAgo(170),
+  },
+  {
+    _id: 'sw_xiaoman_xm3',
+    fromUserId: 'u_xiaoman',
+    toItemId: 'it_mine_xm3',
+    toUserId: 'u_me',
+    direction: 'right',
+    createdAt: minsAgo(190),
+  },
+  {
+    _id: 'sw_atang_xm3',
+    fromUserId: 'u_atang',
+    toItemId: 'it_mine_xm3',
+    toUserId: 'u_me',
+    direction: 'right',
+    createdAt: minsAgo(210),
   },
 ]
