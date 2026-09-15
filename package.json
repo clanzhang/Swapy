@@ -1,6 +1,6 @@
 {
   "name": "swapy",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "换换 — 闲置物品滑动匹配交换小程序",
   "templateInfo": {
@@ -15,8 +15,10 @@
     "build:h5": "taro build --type h5",
     "dev:h5": "npm run build:h5 -- --watch",
     "typecheck": "tsc --noEmit",
-    "verify:matching": "node scripts/run-verify.cjs",
-    "verify:dist": "node scripts/check-dist.cjs"
+    "verify:matching": "node scripts/run-verify.cjs verify-matching",
+    "verify:dist": "node scripts/check-dist.cjs",
+    "verify:gesture": "node scripts/run-verify.cjs verify-gesture",
+    "verify": "pnpm typecheck && pnpm verify:matching && pnpm verify:gesture && pnpm verify:dist"
   },
   "browserslist": [
     "last 3 versions",

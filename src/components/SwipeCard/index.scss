@@ -1,12 +1,42 @@
 .swipe-card__area {
+  position: relative;
   width: 100%;
   height: 100%;
 }
 
+// ------------------------------------------------------------------ 拖拽层
+//
+// 位移和旋转都挂在这一层，用 transform 而不是 left/top：
+// 不触发重排，每帧只改一个属性，拖动时才不会掉帧。
+
 .swipe-card__mover {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  // 支点放在底边，卡片甩出去时像被从底部拨了一下
+  transform-origin: 50% 100%;
+  will-change: transform;
 }
+
+.swipe-card__mover--idle,
+.swipe-card__mover--drag {
+  // 跟手：任何过渡都会变成拖影
+  transition: none;
+}
+
+.swipe-card__mover--return {
+  // 带一点过冲的弹簧，回到原位时有「弹一下」的手感
+  transition: transform 360ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.swipe-card__mover--fly {
+  // 甩出去要加速，不能用弹簧
+  transition: transform 300ms cubic-bezier(0.36, 0.07, 0.66, 1);
+}
+
+// ------------------------------------------------------------------ 卡片本体
 
 .swipe-card {
   position: relative;
@@ -16,12 +46,16 @@
   background: $card;
   border-radius: $radius-card;
   box-shadow: $shadow-card;
-  // 旋转跟手：不加 transition，否则会拖影
-  transform-origin: 50% 120%;
+  transition: box-shadow 200ms ease;
+}
+
+.swipe-card--glow {
+  box-shadow:
+    0 0 0 2px rgba(255, 107, 53, 0.5),
+    0 0 34px 6px rgba(255, 107, 53, 0.5);
 }
 
 .swipe-card--static {
-  // 牌堆下层卡片只做视觉占位，尺寸由外层 slot 决定
   width: 100%;
   height: 100%;
 }

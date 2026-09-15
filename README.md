@@ -10,7 +10,7 @@
 | --- | --- |
 | 前端 | Taro 3.6 + React 18 + TypeScript |
 | UI | NutUI React Taro 2.7（按需引入，只打进用到的 3 个组件） |
-| 滑动交互 | 微信原生 `movable-area` + `movable-view` |
+| 滑动交互 | 自研 touch 手势 + CSS transform（数学上的 1:1 跟手） |
 | 状态管理 | Zustand |
 | 后端 | 微信云开发（云函数 + 云数据库 + 云存储） |
 
@@ -31,7 +31,9 @@ pnpm build:weapp    # 构建到 dist/
 
 ```bash
 pnpm typecheck        # TypeScript 检查
-pnpm verify:matching  # 跑匹配算法的行为验证（12 项断言）
+pnpm verify           # 上面四项全跑一遍
+pnpm verify:matching  # 匹配算法行为验证（12 项断言）
+pnpm verify:gesture   # 滑动手势验证 + 参数表（12 项断言）
 pnpm verify:dist      # 产物体检（扫残留的 process 引用）
 ```
 
@@ -60,7 +62,9 @@ src/
 │   └── index.ts         #   唯一的实现选择点
 ├── store/               # Zustand：userStore / deckStore
 ├── components/
-│   ├── SwipeCard/       #   可拖动卡片（位移 → 旋转/印章透明度联动）
+│   ├── SwipeCard/       #   可拖动卡片
+│   │   ├── gesture.ts   #     手势判定纯函数（阈值、甩动、旋转角度）
+│   │   └── index.tsx    #     touch 事件 → transform 映射
 │   ├── CardStack/       #   三张牌的堆叠与层次
 │   ├── ItemImage/       #   统一图片组件（含渐变占位图兜底）
 │   ├── ItemImagePager/  #   多图浏览（点击切图 + 进度条）
@@ -94,20 +98,38 @@ scripts/                 # 匹配算法的行为验证脚本
 代价是这份契约必须被认真维护：`swipe` 的匹配判定在 Mock 和云函数里各有一份，
 改的时候两边都要改。`pnpm verify:matching` 就是钉住这件事的。
 
-### 滑动卡片的两个微信端坑
+### 滑动卡片：为什么最后没用 `movable-view`
 
-**坑一：`movable-view` 在 weapp 没有 `onChangeEnd`。**
-Taro 的类型定义里它只标注支持 alipay。所以拖拽结束只能挂在**外层容器的
-`onTouchEnd`** 上，配合一个 ref 记录最新位移来判断。
+第一版按简报用了 `movable-area` + `movable-view`，真机手感是「拖很远卡片才动一点，
+松手回弹黏糊糊」。排查后是结构性原因，不是参数问题：
 
-**坑二：卡片和 `movable-area` 等大时拖不动。**
-可移动范围 = 区域尺寸 − 视图尺寸 = 0。必须开 `out-of-bounds`。
-开了之后松手会自动回弹，于是把 `x`/`y` 做成**受控属性**、在 `onChange`
-里同步成手指当前位置 —— 属性值等于实际位置，回弹就被抵消了，
-松手后接我们自己的「归位 / 飞出」动画。
+```
+.swipe-card__area  = 100% × 100%   ← 槽位大小
+.swipe-card__mover = 100% × 100%   ← 一模一样
+```
 
-另外：**`movable-area` 的祖先节点不能有 `transform`**，否则触摸坐标会错位。
-所以牌堆下层卡片的 `scale` 位移只加在 depth > 0 的 slot 上。
+`movable-view` 的可移动范围 = **区域尺寸 − 视图尺寸 = 0**。范围是 0，意味着
+**整段拖拽全程都算「越界」**，`out-of-bounds` 的阻尼贯穿始终 —— 每移动一个像素
+都在被抗。`damping` 只是在调越界回弹动画的速度，改不了拖拽阻力本身。
+
+修法有两条：给它造一个真实的移动区间（区域掉大 ±200px、负偏移定位），
+或者自己接管 touch 事件。**选了后者**，因为：
+
+- 手指位移直接映射成 `transform`，跟手是**数学上的 1:1**，不是调参调出来的
+- 前者仍然押在「`movable-view` 会不会用 `boundingClientRect` 量绝对定位元素的尺寸」
+  这个我无法在本地验证的组件行为上
+
+顺带还去掉了两个我们必须绕的坑：`onChangeEnd` 在 weapp 不触发、
+`movable-area` 祖先节点有 `transform` 会触摸坐标错位。
+
+判定逻辑抽在 `src/components/SwipeCard/gesture.ts`，是纯函数，所以能用
+`pnpm verify:gesture` 验证，也能直接打印一张参数表 —— 调手感不用通真机。
+
+### 拖完手松开会误触发图片切图
+
+图片切图挂在 `onClick` 上，而卡片是整体可拖拽的。微信的 `tap` 在手指移动后
+依然会触发，所以「拖一下卡片再松手」会顺便把图片翻页。
+`ItemImagePager` 里记了一下本次触摸的最大位移，超过 10px 就不当点击处理。
 
 ### 图片切图不用横滑
 
@@ -168,6 +190,17 @@ NutUI 全量样式 208KB，本产品只用了 Button / Input / TextArea，所以
 详见 [cloudfunctions/README.md](./cloudfunctions/README.md#九已知限制)。
 
 ## 版本记录
+
+### 0.1.2
+
+- 重构：滑动卡片改用自研 touch 手势 + CSS transform，替掉 `movable-view`。
+  原先卡片和可移动区域等大，可移动范围为 0，整段拖拽全程踩越界阻尼，
+  永远做不到 1:1 跟手。
+- 新增甩动判定：位移 > 36px 且速度 > 0.6px/ms 即可触发，不必拖满阈值。
+- 新增 `scripts/verify-gesture.ts`：12 项手势断言 + 可读的参数表，
+  调手感不用通真机。旋转手感调整（提交点 5.7° → 9.1°）。
+- 修复：拖完卡片松手会误触发图片切图。
+- 右滑飞出补上「放大 + 发光」（简报要求，之前漏了）。
 
 ### 0.1.1
 
