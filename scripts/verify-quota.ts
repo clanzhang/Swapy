@@ -10,6 +10,7 @@ import assert from 'node:assert/strict'
 
 import { SEED_ITEMS, SEED_ME, SEED_SWIPES, SEED_USERS } from '@/constants/seed'
 import { createMockApi } from '@/services/mock'
+import { useDeckStore } from '@/store/deckStore'
 import { DAILY_QUOTA, formatCountdown, nextResetAt, quotaDayKey } from '@/utils/quota'
 
 const DB_KEY = 'swapy:mock-db:v1'
@@ -78,36 +79,56 @@ async function main() {
 
   // ------------------------------------------------------------ 消耗行为
 
+  const settle = () => new Promise((r) => setTimeout(r, 40))
+
+  await step('首页徽标：每滑一张就少 1（用户实际看到的链路）', async () => {
+    // 这条是照着真实链路跑的：deckStore → services → mock。
+    // 之前有人反馈「数字一直停在 29」，原因不在这一层（是口径理解不同），
+    // 但既然有人会这么看，就该有一条断言盯着它。
+    const store = useDeckStore.getState()
+    await store.init()
+    await settle()
+
+    const first = useDeckStore.getState().quota!.remaining
+    assert.ok(first > 0, '初始应该有额度')
+
+    // 左滑右滑交替，每一次徽标都必须减 1
+    const directions = ['right', 'left', 'left', 'right', 'left'] as const
+    for (let i = 0; i < directions.length; i += 1) {
+      await useDeckStore.getState().commitSwipe(directions[i])
+      await settle()
+      assert.equal(
+        useDeckStore.getState().quota!.remaining,
+        first - (i + 1),
+        `第 ${i + 1} 次滑动（${directions[i]}）之后徽标没变`,
+      )
+    }
+  })
+
   const api = createMockApi()
   await api.init()
 
-  await step('左滑跳过不消耗额度', async () => {
+  await step('左滑和右滑都消耗额度（额度按张数算）', async () => {
     const before = (await api.getCards({ limit: 1 })).quota!
     const pool = (await api.getCards({ limit: 5 })).list
 
-    const res = await api.swipe(pool[0]._id, 'left')
-    assert.equal(res.quota.used, before.used, '左滑不该扣额度')
-    assert.equal(res.quota.remaining, before.remaining)
-  })
+    const left = await api.swipe(pool[0]._id, 'left')
+    assert.equal(left.quota.used, before.used + 1, '左滑跳过也要扣额度')
 
-  await step('右滑「想要」每次扣 1', async () => {
-    const before = (await api.getCards({ limit: 1 })).quota!
-    const pool = (await api.getCards({ limit: 5 })).list
-
-    const res = await api.swipe(pool[0]._id, 'right')
-    assert.equal(res.quota.used, before.used + 1, '右滑应该扣 1 次')
-    assert.equal(res.quota.remaining, before.remaining - 1)
-    assert.equal(res.quota.limit, DAILY_QUOTA)
+    const right = await api.swipe(pool[1]._id, 'right')
+    assert.equal(right.quota.used, before.used + 2, '右滑想要也要扣额度')
+    assert.equal(right.quota.limit, DAILY_QUOTA)
+    assert.equal(right.quota.remaining, DAILY_QUOTA - (before.used + 2))
   })
 
   let exhausted = false
 
   await step('额度耗尽后不再下发卡片', async () => {
-    // 一直右滑到额度见底
+    // 一直左滑到额度见底（左滑不涉及匹配，跑起来更干净）
     for (let guard = 0; guard < DAILY_QUOTA * 3; guard += 1) {
       const pool = (await api.getCards({ limit: 200 })).list
       if (!pool.length) break
-      const res = await api.swipe(pool[0]._id, 'right')
+      const res = await api.swipe(pool[0]._id, 'left')
       if (res.quota.remaining <= 0) {
         exhausted = true
         break
@@ -121,20 +142,23 @@ async function main() {
     assert.equal(page.quota?.used, DAILY_QUOTA)
   })
 
-  await step('额度耗尽后的右滑不被记录（不能偷偷消耗掉物品）', async () => {
+  await step('额度耗尽后的滑动不被记录（不能偷偷消耗掉物品）', async () => {
     const wantedBefore = (await api.getWantedItems()).length
     const pool = (await api.getCards({ limit: 200 })).list
     assert.equal(pool.length, 0, '前置条件：额度用完时池子应该是空的')
 
-    // 直接对一件已知物品发起右滑，模拟客户端被绕过
+    // 直接对一件已知物品发起滑动，模拟客户端被绕过
     const target = SEED_ITEMS.find(
       (i) => i.ownerId !== SEED_ME._id && i.status === 'active',
     )!
-    const res = await api.swipe(target._id, 'right')
 
-    assert.equal(res.matched, false, '超额度不该匹配')
-    assert.equal(res.quota.remaining, 0, '额度不该变成负数')
-    assert.equal(res.quota.used, DAILY_QUOTA, 'used 不该超过上限')
+    const left = await api.swipe(target._id, 'left')
+    assert.equal(left.quota.remaining, 0, '额度不该变成负数')
+    assert.equal(left.quota.used, DAILY_QUOTA, 'used 不该超过上限')
+
+    const right = await api.swipe(target._id, 'right')
+    assert.equal(right.matched, false, '超额度不该匹配')
+    assert.equal(right.quota.used, DAILY_QUOTA, 'used 不该超过上限')
 
     const wantedAfter = (await api.getWantedItems()).length
     assert.equal(

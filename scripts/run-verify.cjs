@@ -31,9 +31,16 @@ esbuild.buildSync({
   target: 'node18',
   outfile: out,
   logLevel: 'warning',
-  // react-dom/server 内部是 CJS（会 require('stream')），
+  // 这些包内部走 CJS（会 require('react') / require('stream')），
   // 打进 ESM 后运行时拿不到 require，所以留给 Node 自己解析
-  external: ['react', 'react-dom', 'react-dom/server'],
+  external: [
+    'react',
+    'react-dom',
+    'react-dom/server',
+    'zustand',
+    'use-sync-external-store',
+    'use-sync-external-store/shim/with-selector',
+  ],
   alias: {
     '@tarojs/taro': path.join(root, 'scripts/stub-taro.ts'),
   },

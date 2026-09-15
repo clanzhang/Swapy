@@ -47,14 +47,12 @@ exports.main = async (event = {}) => {
 
   const now = Date.now()
 
-  // 只有「想要」消耗额度，左滑跳过不扣
-  if (direction === 'right') {
-    const gate = await consumeOne(me, now)
-    if (!gate.allowed) {
-      // 额度用完就整条不记录：否则用户明天回来会发现物品被「偷偷」
-      // 跳过了，而他并没有真的表达过想要
-      return { ok: true, data: { matched: false, quota: buildQuota(gate.used, now) } }
-    }
+  // 左滑跳过和右滑想要都消耗额度：额度就是「每天能看多少张卡」
+  const gate = await consumeOne(me, now)
+  if (!gate.allowed) {
+    // 额度用完就整条不记录：否则用户明天回来会发现物品被「偷偷」
+    // 跳过了，而他并没有真的做过选择
+    return { ok: true, data: { matched: false, quota: buildQuota(gate.used, now) } }
   }
 
   // 幂等：同一件物品重复滑只记一次，避免用户连点产生脏数据

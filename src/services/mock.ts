@@ -264,16 +264,14 @@ class MockApi implements SwapyApi {
     const target = this.itemById(toItemId)
     if (!target) return { matched: false, quota: this.readQuota() }
 
-    // 只有「想要」消耗额度，左滑跳过不扣
-    if (direction === 'right') {
-      const before = this.readQuota()
-      // 额度用完就整条不记录：否则用户明天回来会发现物品被「偷偷」跳过了，
-      // 而他并没有真的表达过想要
-      if (before.remaining <= 0) {
-        return { matched: false, quota: before }
-      }
-      this.db.quota.used += 1
+    // 左滑跳过和右滑想要都消耗额度：额度就是「每天能看多少张卡」
+    const before = this.readQuota()
+    // 额度用完就整条不记录：否则用户明天回来会发现物品被「偷偷」跳过了，
+    // 而他并没有真的做过选择
+    if (before.remaining <= 0) {
+      return { matched: false, quota: before }
     }
+    this.db.quota.used += 1
 
     const existed = this.db.swipes.find(
       (s) => s.fromUserId === me._id && s.toItemId === toItemId,

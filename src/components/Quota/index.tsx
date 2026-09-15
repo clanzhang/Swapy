@@ -16,7 +16,7 @@ export function QuotaBadge({ quota }: { quota: QuotaState | null }) {
   return (
     <View className={`quota-badge ${gone ? 'quota-badge--gone' : ''} ${low ? 'quota-badge--low' : ''}`}>
       <Text className='quota-badge__num'>{quota.remaining}</Text>
-      <Text className='quota-badge__label'>/{quota.limit} 想要</Text>
+      <Text className='quota-badge__label'>/{quota.limit} 张</Text>
     </View>
   )
 }
@@ -41,9 +41,9 @@ export function QuotaLimit({ resetAt, onPublish }: LimitProps) {
   return (
     <View className='quota-limit'>
       <Text className='quota-limit__emoji'>🌙</Text>
-      <Text className='quota-limit__title'>今天的「想要」用完了</Text>
+      <Text className='quota-limit__title'>今天的 30 张刷完了</Text>
       <Text className='quota-limit__desc'>
-        额度每天 12:00 刷新。已经匹配上的会话不受影响，随时可以接着聊。
+        每天 30 张，中午 12:00 刷新。已经匹配上的会话不受影响，随时可以接着聊。
       </Text>
 
       <View className='quota-limit__timer'>
