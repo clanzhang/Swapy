@@ -36,6 +36,7 @@
   top: -20px;
   border-radius: 2px;
   opacity: 0;
+  // 不写 will-change：粒子太多，逐个提升合成层反而更慢
   animation-name: confetti-fall;
   animation-timing-function: cubic-bezier(0.3, 0.6, 0.5, 1);
   animation-iteration-count: 1;
@@ -73,7 +74,18 @@
   border-radius: 20px;
   background: $card;
   box-shadow: $shadow-float;
-  transform: translateY(-50%);
+  // transform 里带着 translateY(-50%) 做垂直居中，入场只动 opacity 和一小段位移
+  transform: translateY(-50%) scale(0.96);
+  opacity: 0;
+  will-change: transform, opacity;
+  transition:
+    transform 240ms ease-out,
+    opacity 240ms ease-out;
+}
+
+.match-modal__content--in {
+  transform: translateY(-50%) scale(1);
+  opacity: 1;
 }
 
 .match-modal__title {

@@ -1,6 +1,6 @@
 import { Text, View } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { Close, FaceMild, Heart } from '@/components/Icon'
 import CardStack from '@/components/CardStack'
@@ -41,6 +41,14 @@ export default function Index() {
   /** 完善资料引导：一个会话里只弹一次，不反复骚扰 */
   const [guideVisible, setGuideVisible] = useState(false)
   const guideShownRef = useRef(false)
+  const guideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(
+    () => () => {
+      if (guideTimerRef.current) clearTimeout(guideTimerRef.current)
+    },
+    [],
+  )
   const [cardWidth] = useState(() => {
     // getWindowInfo 是基础库 2.20.1 才有的；老客户端要回退，
     // 否则会直接抛 not a function
@@ -79,8 +87,9 @@ export default function Index() {
    * 不打断用户。等用户已经产生价值行为（第一次右滑「想要」）再问，
    * 接受度高得多，而且可以跳过。
    */
-  const handleDecide = async (direction: SwipeDirection) => {
-    await commitSwipe(direction)
+  const handleDecide = useCallback(
+    async (direction: SwipeDirection) => {
+      await commitSwipe(direction)
 
     if (
       direction === 'right' &&
@@ -90,9 +99,20 @@ export default function Index() {
       needsProfile()
     ) {
       guideShownRef.current = true
-      setGuideVisible(true)
-    }
-  }
+      // 等牌堆补位动画（300ms）跑完再弹，避免两个动画叠在一起掉帧
+        guideTimerRef.current = setTimeout(() => setGuideVisible(true), 340)
+      }
+    },
+    [commitSwipe, needsProfile],
+  )
+
+  /**
+   * 上滑看详情。刻意从 store 里现取顶部的卡，而不是闭包里的 cards ——
+   * 否则这个回调会随牌堆变化而变，SwipeCard 的 memo 就白加了。
+   */
+  const handleDetail = useCallback(() => {
+    setDetailCard(useDeckStore.getState().cards[0] ?? null)
+  }, [])
 
   const outOfQuota = (quota?.remaining ?? 1) <= 0
 
@@ -144,8 +164,8 @@ export default function Index() {
             cards={cards}
             topRef={topRef}
             cardWidth={cardWidth}
-            onDecide={(d) => void handleDecide(d)}
-            onDetail={() => setDetailCard(cards[0] ?? null)}
+            onDecide={handleDecide}
+            onDetail={handleDetail}
           />
         )}
       </View>

@@ -4,6 +4,7 @@ import Taro from '@tarojs/taro'
 import { useEffect, useState } from 'react'
 
 import { THEME } from '@/constants'
+import { useEnter } from '@/hooks/useEnter'
 import { itemService } from '@/services'
 import { useUserStore } from '@/store/userStore'
 import { defaultNickname } from '@/utils/profile'
@@ -36,6 +37,7 @@ export default function ProfileGuide({ visible, onClose }: Props) {
   const [avatarUrl, setAvatarUrl] = useState('')
   const [localAvatar, setLocalAvatar] = useState('')
   const [saving, setSaving] = useState(false)
+  const entered = useEnter(visible)
 
   // 每次打开都用当前资料回填，避免上次没保存的残留
   useEffect(() => {
@@ -81,9 +83,9 @@ export default function ProfileGuide({ visible, onClose }: Props) {
 
   return (
     <View className='guide'>
-      <View className='guide__mask' onClick={onClose} />
+      <View className={`guide__mask ${entered ? 'guide__mask--in' : ''}`} onClick={onClose} />
 
-      <View className='guide__panel fade-up'>
+      <View className={`guide__panel ${entered ? 'guide__panel--in' : ''}`}>
         <Text className='guide__title'>让别人认得你</Text>
         <Text className='guide__desc'>
           匹配成功后对方会看到你的昵称和头像，完善一下更容易聊起来。

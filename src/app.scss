@@ -132,19 +132,7 @@ scroll-view {
 }
 
 // --------------------------------------------------------------------- 动画
-
-@keyframes swapy-fade-up {
-  from {
-    transform: translateY(12px);
-    opacity: 0;
-  }
-
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.fade-up {
-  animation: swapy-fade-up 220ms ease-out both;
-}
+//
+// 弹窗的入场不用 CSS keyframes，而是两段式：
+// 先渲染在屏幕外，下一帧再加 --in 类走 transition。
+// 见 src/hooks/useEnter.ts —— 挂载同一帧就播动画会掉帧。

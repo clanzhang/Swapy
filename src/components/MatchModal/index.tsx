@@ -1,6 +1,8 @@
 import { Text, View } from '@tarojs/components'
 import { useMemo } from 'react'
 
+import { useEnter } from '@/hooks/useEnter'
+
 import { HeartFill } from '@/components/Icon'
 import { CATEGORY_MAP, THEME } from '@/constants'
 import type { MatchItem } from '@/types'
@@ -19,10 +21,14 @@ interface Props {
 const CONFETTI_COLORS = ['#3C5434', '#C79A54', '#94601A', '#5F8578', '#E9EEE7', '#D9C7A3']
 
 export default function MatchModal({ match, onClose, onChat }: Props) {
-  // 撒花粒子：位置/延迟/颜色都固定住，避免每次重渲染都在乱跳
+  // 弹窗是在卡片飞出动画还没结束时挂载的，更要走两段式，
+  // 否则撒花 + 卡片飞出 + 弹窗入场三件事挤在同一帧
+  const entered = useEnter(!!match)
+  // 撒花粒子：位置/延迟/颜色都固定住，避免每次重渲染都在乱跳。
+  // 数量压到 16 —— 二十多个粒子同时跑在小程序 webview 里很吃帧
   const particles = useMemo(
     () =>
-      Array.from({ length: 28 }, (_, i) => {
+      Array.from({ length: 16 }, (_, i) => {
         const seed = (i * 9301 + 49297) % 233280
         const r = seed / 233280
         const r2 = ((i * 4523 + 1231) % 9973) / 9973
@@ -66,7 +72,7 @@ export default function MatchModal({ match, onClose, onChat }: Props) {
         ))}
       </View>
 
-      <View className='match-modal__content fade-up'>
+      <View className={`match-modal__content ${entered ? 'match-modal__content--in' : ''}`}>
         <Text className='match-modal__title'>匹配成功</Text>
         <Text className='match-modal__sub'>
           {match.otherUser.nickname} 也想要你的物品，聊聊怎么换吧

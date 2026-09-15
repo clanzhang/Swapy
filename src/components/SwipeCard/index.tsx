@@ -1,5 +1,13 @@
 import { Image, Text, View } from '@tarojs/components'
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import {
+  forwardRef,
+  memo,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react'
 
 import { CATEGORY_MAP, PRICE_RANGE_MAP, THEME } from '@/constants'
 import type { CardItem, SwipeDirection } from '@/types'
@@ -57,7 +65,12 @@ interface TouchPoint {
  * 于是整段拖拽全程都算「越界」，阻尼贯穿始终，永远做不到 1:1 跟手。
  * 这里把手指位移直接映射成 transform，跟手是数学上的 1:1，不依赖任何组件物理。
  */
-export default forwardRef<SwipeCardHandle, Props>(function SwipeCard(
+/**
+ * 包一层 memo：牌堆同时挂 3 张卡，而首页任何状态变化（开面板、弹引导、
+ * 额度更新）都会重渲染整棵子树。卡片内容是图片 + 文本，白白重渲染很浪费。
+ * 前提是父组件传进来的回调是稳定的 —— 首页那边用 useCallback 保证。
+ */
+const SwipeCard = forwardRef<SwipeCardHandle, Props>(function SwipeCard(
   { card, active, cardWidth, onDecide, onDetail },
   ref,
 ) {
@@ -127,6 +140,18 @@ export default forwardRef<SwipeCardHandle, Props>(function SwipeCard(
     later(() => setPhase('idle'), RETURN_MS)
   }, [])
 
+  /**
+   * 上滑看详情时用：卡片直接归位，不跑弹簧。
+   *
+   * 面板马上就会盖上来，让卡片再弹 360ms 只会和面板的滑入动画抢帧 ——
+   * 而且面板带遮罩，这 360ms 的细节用户根本看不到。
+   */
+  const snapBack = useCallback(() => {
+    dragRef.current.active = false
+    setPhase('idle')
+    apply(0, 0)
+  }, [])
+
   const handleTouchStart = (e: any) => {
     if (lockRef.current) return
     const touch: TouchPoint | undefined = e.touches?.[0]
@@ -182,8 +207,10 @@ export default forwardRef<SwipeCardHandle, Props>(function SwipeCard(
     )
 
     if (outcome === 'detail') {
-      reset()
-      later(() => onDetailRef.current(), 60)
+      // 直接归位并立刻打开面板：不要 reset() + 60ms 延时那套，
+      // 那会让两个动画重叠
+      snapBack()
+      onDetailRef.current()
       return
     }
     if (outcome === 'reset') {
@@ -314,3 +341,5 @@ function CardBody({ card, showHint }: { card: CardItem; showHint: boolean }) {
     </View>
   )
 }
+
+export default memo(SwipeCard)

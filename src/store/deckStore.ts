@@ -129,10 +129,16 @@ export const useDeckStore = create<DeckState>((set, get) => ({
 
     if (res.quota) set({ quota: res.quota })
 
-    // swipe 只回 matchId，弹窗要展示双方物品，所以再取一次完整记录
+    // swipe 只回 matchId，弹窗要展示双方物品，所以再取一次完整记录。
+    // 这一步失败不能影响滑动本身已经成功的事实 —— 匹配记录已经建了，
+    // 用户去「匹配」页也能看到，只是少了这次弹窗。
     if (res.matched && res.matchId) {
-      const match = await matchService.getMatch(res.matchId)
-      if (match) set({ matchResult: match })
+      try {
+        const match = await matchService.getMatch(res.matchId)
+        if (match) set({ matchResult: match })
+      } catch {
+        void Taro.showToast({ title: '匹配成功，去「匹配」页看看', icon: 'none' })
+      }
     }
 
     // 最后一滴额度用完了，把牌堆清空，让首页直接进入引导态

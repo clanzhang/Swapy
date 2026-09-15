@@ -1,4 +1,5 @@
 import { ScrollView, Text, View } from '@tarojs/components'
+import { useEnter } from '@/hooks/useEnter'
 
 import CategoryIcon from '../CategoryIcon'
 import { THEME } from '@/constants'
@@ -19,6 +20,9 @@ interface Props {
 
 /** 上滑唤起的半屏详情面板 */
 export default function ItemDetailSheet({ card, onClose, onDecide }: Props) {
+  // 先渲染在屏幕外，下一帧再滑入 —— 否则布局绘制会和动画抢同一帧
+  const entered = useEnter(!!card)
+
   if (!card) return null
 
   const category = CATEGORY_MAP[card.category]
@@ -26,9 +30,9 @@ export default function ItemDetailSheet({ card, onClose, onDecide }: Props) {
 
   return (
     <View className='sheet'>
-      <View className='sheet__mask' onClick={onClose} />
+      <View className={`sheet__mask ${entered ? 'sheet__mask--in' : ''}`} onClick={onClose} />
 
-      <View className='sheet__panel'>
+      <View className={`sheet__panel ${entered ? 'sheet__panel--in' : ''}`}>
         <View className='sheet__handle' onClick={onClose}>
           <View className='sheet__handle-bar' />
         </View>
