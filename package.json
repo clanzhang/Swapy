@@ -1,6 +1,6 @@
 {
   "name": "swapy",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "private": true,
   "description": "换换 — 闲置物品滑动匹配交换小程序",
   "templateInfo": {
@@ -18,13 +18,14 @@
     "verify:matching": "node scripts/run-verify.cjs verify-matching",
     "verify:dist": "node scripts/check-dist.cjs",
     "verify:gesture": "node scripts/run-verify.cjs verify-gesture",
-    "verify": "pnpm typecheck && pnpm verify:matching && pnpm verify:store && pnpm verify:gesture && pnpm verify:quota && pnpm verify:moderation && pnpm verify:icons && pnpm verify:dist",
+    "verify": "pnpm lint && pnpm typecheck && pnpm verify:matching && pnpm verify:store && pnpm verify:gesture && pnpm verify:quota && pnpm verify:moderation && pnpm verify:icons && pnpm verify:dist",
     "verify:quota": "node scripts/run-verify.cjs verify-quota",
     "gen:tab-icons": "node scripts/generate-tab-icons.cjs",
     "prebuild:weapp": "node scripts/generate-tab-icons.cjs",
     "verify:icons": "node scripts/run-verify.cjs verify-icons",
     "verify:moderation": "node scripts/run-verify.cjs verify-moderation",
-    "verify:store": "node scripts/run-verify.cjs verify-store"
+    "verify:store": "node scripts/run-verify.cjs verify-store",
+    "lint": "eslint src cloudfunctions scripts --ext .ts,.tsx,.js,.cjs --max-warnings 0"
   },
   "browserslist": [
     "last 3 versions",
@@ -55,9 +56,14 @@
     "@tarojs/taro-loader": "3.6.40",
     "@tarojs/webpack5-runner": "3.6.40",
     "@types/react": "^18.2.0",
+    "@types/react-dom": "^19.3.0",
     "@types/webpack-env": "^1.18.4",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
     "babel-preset-taro": "3.6.40",
     "esbuild": "^0.19.12",
+    "eslint": "^8.57.1",
+    "eslint-plugin-react-hooks": "^4.6.2",
     "sass": "^1.77.0",
     "typescript": "^5.4.5",
     "webpack": "5.91.0"

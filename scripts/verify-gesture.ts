@@ -192,6 +192,9 @@ function main() {
   })
 
   step('飞出参数：右滑放大发亮，左滑缩小', () => {
+    // 直接测组件真正调用的那个函数，而不是只对比常量
+    assert.equal(flyScale('right'), FLY_SCALE_LIKE)
+    assert.equal(flyScale('left'), FLY_SCALE_NOPE)
     assert.ok(FLY_SCALE_LIKE > 1, '右滑应该放大')
     assert.ok(FLY_SCALE_NOPE < 1, '左滑应该缩小')
     assert.equal(flyRotation('right'), FLY_ROTATE)

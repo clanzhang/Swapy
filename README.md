@@ -35,8 +35,9 @@ pnpm build:weapp    # 构建到 dist/
 | --- | --- |
 | `pnpm dev:weapp` / `pnpm build:weapp` | 开发（watch） / 构建 |
 | `pnpm gen:tab-icons` | 生成 TabBar 的 PNG 图标（构建前自动跑） |
-| `pnpm typecheck` | TypeScript 检查 |
-| `pnpm verify` | 下面五项一起跑 |
+| `pnpm lint` | ESLint（hooks 依赖、未使用变量等） |
+| `pnpm typecheck` | TypeScript 检查（strict） |
+| `pnpm verify` | 下面全部一起跑 |
 | `pnpm verify:matching` | 匹配算法验证（14 项断言，含分页不漏卡） |
 | `pnpm verify:store` | deckStore 状态机验证（5 项断言，含并发与失败恢复） |
 | `pnpm verify:gesture` | 滑动手势验证（12 项断言 + 参数表） |

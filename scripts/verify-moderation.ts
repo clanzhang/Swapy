@@ -11,7 +11,7 @@ import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
 
 import { describeHits, moderateItem, moderateText } from '@/utils/moderation'
-import type { ModerationCategory } from '@/utils/moderation'
+import type { ModerationCategory, ModerationHit } from '@/utils/moderation'
 
 /**
  * 云函数那份规则是同一套逻辑的另一份拷贝（云函数各自独立打包，无法共享代码）。
@@ -154,8 +154,10 @@ function main() {
 
     const diff: string[] = []
     for (const text of all) {
-      const mine = moderateText(text).map((h) => `${h.category}:${h.term}`)
-      const theirs = cloudModeration.moderateText(text).map((h) => `${h.category}:${h.term}`)
+      const mine = moderateText(text).map((h: ModerationHit) => `${h.category}:${h.term}`)
+      const theirs = cloudModeration
+        .moderateText(text)
+        .map((h: ModerationHit) => `${h.category}:${h.term}`)
       if (JSON.stringify(mine) !== JSON.stringify(theirs)) {
         diff.push(`${text}\n      前端: ${mine.join(', ') || '—'}\n      云函数: ${theirs.join(', ') || '—'}`)
       }

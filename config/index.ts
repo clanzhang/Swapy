@@ -5,7 +5,7 @@ import { defineConfig, type UserConfigExport } from '@tarojs/cli'
 import devConfig from './dev'
 import prodConfig from './prod'
 
-export default defineConfig(async (merge, { command, mode }) => {
+export default defineConfig(async (merge) => {
   const root = path.resolve(__dirname, '..')
 
   const baseConfig: UserConfigExport = {

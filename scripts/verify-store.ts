@@ -8,7 +8,6 @@
  */
 import assert from 'node:assert/strict'
 
-import { CARD_PAGE_SIZE } from '@/constants'
 import { api } from '@/services'
 import { resetMockData } from '@/services/mock'
 import { useDeckStore } from '@/store/deckStore'
@@ -69,6 +68,7 @@ async function main() {
 
     const original = api.getCards.bind(api)
     let delayNext = true
+    // 故意把 API 换成慢的：这就是测试的目的（模拟过期响应）。
     api.getCards = async (query: CardQuery): Promise<Page<CardItem>> => {
       if (delayNext) {
         delayNext = false
@@ -84,6 +84,8 @@ async function main() {
     await slow
     await sleep(150)
 
+    // 测试结束还原（这里就是要跨越 await 改写同一个引用）
+    // eslint-disable-next-line require-atomic-updates
     api.getCards = original
 
     const cards = deck().cards
@@ -104,11 +106,13 @@ async function main() {
     const before = deck().cards.length
     const topId = deck().cards[0]._id
     const original = api.swipe.bind(api)
+    // 故意让滑动失败：验证失败时卡片会被放回去。
     api.swipe = async () => {
       throw new Error('模拟网络失败')
     }
 
     await deck().commitSwipe('left')
+    // eslint-disable-next-line require-atomic-updates
     api.swipe = original
 
     assert.equal(deck().cards.length, before, '失败后卡片数量应该不变')
