@@ -1,6 +1,6 @@
 import Taro from '@tarojs/taro'
 
-import { CLOUD_ENV, COLLECTIONS, DEFAULT_CITY, DEFAULT_LOCATION } from '@/config'
+import { CLOUD_ENV, COLLECTIONS } from '@/config'
 import type {
   CardItem,
   ChatMessage,
@@ -75,10 +75,9 @@ class CloudApi implements SwapyApi {
       cloud().init({ env: CLOUD_ENV, traceUser: true })
       this.inited = true
     }
-    const result = await call<LoginResult>('login', {
-      city: this.getCachedUser()?.city || DEFAULT_CITY,
-      location: DEFAULT_LOCATION,
-    })
+    // 不传 city / location：服务端只在显式传了字段时才更新，
+    // 所以这样能保留用户已经设置过的城市，也不会给新用户塞一个假城市
+    const result = await call<LoginResult>('login')
     this.user = result.user
     this.cacheUser(result.user)
     return result

@@ -25,7 +25,7 @@ exports.main = async (event = {}) => {
     patch.nickname = event.nickname.trim().slice(0, 12)
   }
   if (typeof event.avatarUrl === 'string') patch.avatarUrl = event.avatarUrl
-  if (typeof event.city === 'string' && event.city) patch.city = event.city
+  if (typeof event.city === 'string') patch.city = event.city
   if (event.location && typeof event.location.lat === 'number') {
     patch.location = { lat: event.location.lat, lng: event.location.lng }
   }
@@ -40,9 +40,12 @@ exports.main = async (event = {}) => {
 
   const profile = {
     _openid: OPENID,
+    // 规则和客户端 src/utils/profile.ts 的 defaultNickname 保持一致
     nickname: `换换用户${OPENID.slice(-4)}`,
     avatarUrl: '',
-    city: '上海',
+    // 按规格默认为空。城市为空时 getCards 不做同城过滤，
+    // 否则新用户首页会是一片空白 —— 那比「看到外地物品」糟糕得多。
+    city: '',
     location: null,
     createdAt: now,
     lastActiveAt: now,
@@ -50,5 +53,6 @@ exports.main = async (event = {}) => {
   }
   const res = await users.add({ data: profile })
 
+  // isNew 只用于埋点/引导，客户端不要用它弹窗打断用户
   return { ok: true, data: { user: { _id: res._id, ...profile }, isNew: true } }
 }

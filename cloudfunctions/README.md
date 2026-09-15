@@ -92,6 +92,10 @@ users:     _openid
 | 云函数 | 入参 | 出参 `data` |
 | --- | --- | --- |
 | `login` | 无（可选 `nickname`/`avatarUrl`/`city`/`location` 顺带更新资料） | `{ user, isNew }` |
+
+> `login` 创建账号时 `city` 默认是**空字符串**（按规格）。城市为空时
+> `getCards` **不做同城过滤** —— 否则新用户首页会是一片空白，
+> 比「看到外地物品」糟糕得多。城市在第一次右滑的引导弹窗里设置。
 | `getCards` | `{ page = 1, pageSize = 20, categories?, scope? }` | `{ cards, hasMore, quota }` |
 | `swipe` | `{ toItemId, toUserId, direction }` | `{ matched, matchId?, otherUser?, quota }` |
 | `publishItem` | `{ title, category, condition, priceRange, description, imageFileIds }` | `{ success, itemId?, error? }` |

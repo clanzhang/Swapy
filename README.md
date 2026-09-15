@@ -29,6 +29,9 @@ pnpm build:weapp    # 构建到 dist/
 
 默认跑在 **Mock 模式**：不需要 AppID、不需要云环境，内置种子数据，可离线跑通「滑动 → 匹配 → 聊天」全流程。
 
+登录是**静默**的：打开小程序自动拿 openid 建号，不需要注册、不需要手机号、不弹窗。
+昵称和头像延迟到**第一次右滑**时才引导完善，而且可以跳过。
+
 ### 命令
 
 | 命令 | 说明 |
@@ -40,6 +43,7 @@ pnpm build:weapp    # 构建到 dist/
 | `pnpm verify` | 下面全部一起跑 |
 | `pnpm verify:matching` | 匹配算法验证（14 项断言，含分页不漏卡） |
 | `pnpm verify:store` | deckStore 状态机验证（5 项断言，含并发与失败恢复） |
+| `pnpm verify:user` | 登录注册验证（8 项断言，含 isNew 与城市为空） |
 | `pnpm verify:gesture` | 滑动手势验证（12 项断言 + 参数表） |
 | `pnpm verify:quota` | 每日配额验证（10 项断言） |
 | `pnpm verify:moderation` | 发布内容校验（7 项断言，重点是「不该拦」的样例） |

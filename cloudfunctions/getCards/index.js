@@ -103,7 +103,8 @@ exports.main = async (event = {}) => {
     .map((item) => {
       const owner = ownerMap[item.ownerId]
       if (!owner) return null
-      if (owner.city !== me.city) return null
+      // 用户还没设置城市时不过滤（见 login 里 city 默认空的说明）
+      if (me.city && owner.city !== me.city) return null
       if (myRanges.length) {
         const range = PRICE_RANGES[item.priceRange]
         if (!range || !myRanges.some((r) => rangesOverlap(r, range))) return null

@@ -7,6 +7,7 @@ import CardStack from '@/components/CardStack'
 import CategoryFilter from '@/components/CategoryFilter'
 import ItemDetailSheet from '@/components/ItemDetailSheet'
 import MatchModal from '@/components/MatchModal'
+import ProfileGuide from '@/components/ProfileGuide'
 import { QuotaBadge, QuotaLimit } from '@/components/Quota'
 import type { SwipeCardHandle } from '@/components/SwipeCard'
 import { THEME } from '@/constants'
@@ -33,9 +34,13 @@ export default function Index() {
 
   const ready = useUserStore((s) => s.ready)
   const user = useUserStore((s) => s.user)
+  const needsProfile = useUserStore((s) => s.needsProfile)
 
   const topRef = useRef<SwipeCardHandle>(null)
   const [detailCard, setDetailCard] = useState<CardItem | null>(null)
+  /** 完善资料引导：一个会话里只弹一次，不反复骚扰 */
+  const [guideVisible, setGuideVisible] = useState(false)
+  const guideShownRef = useRef(false)
   const [cardWidth] = useState(() => {
     // getWindowInfo 是基础库 2.20.1 才有的；老客户端要回退，
     // 否则会直接抛 not a function
@@ -67,6 +72,28 @@ export default function Index() {
     topRef.current?.trigger(direction)
   }
 
+  /**
+   * 卡片飞出动画播完后的落地处理。
+   *
+   * 完善资料的引导刻意放在这里，而不是登录后 —— 规格要求静默登录、
+   * 不打断用户。等用户已经产生价值行为（第一次右滑「想要」）再问，
+   * 接受度高得多，而且可以跳过。
+   */
+  const handleDecide = async (direction: SwipeDirection) => {
+    await commitSwipe(direction)
+
+    if (
+      direction === 'right' &&
+      !guideShownRef.current &&
+      // 同一时刻只弹一个：匹配成功了先看匹配
+      !useDeckStore.getState().matchResult &&
+      needsProfile()
+    ) {
+      guideShownRef.current = true
+      setGuideVisible(true)
+    }
+  }
+
   const outOfQuota = (quota?.remaining ?? 1) <= 0
 
   return (
@@ -75,7 +102,7 @@ export default function Index() {
         <View className='deck-head__left'>
           <Text className='deck-head__title'>附近好物</Text>
           <Text className='deck-head__meta'>
-            {user?.city || '上海'} · 同城
+            {user?.city ? `${user.city} · 同城` : '全部城市'}
           </Text>
         </View>
         <QuotaBadge quota={quota} />
@@ -117,7 +144,7 @@ export default function Index() {
             cards={cards}
             topRef={topRef}
             cardWidth={cardWidth}
-            onDecide={(d) => void commitSwipe(d)}
+            onDecide={(d) => void handleDecide(d)}
             onDetail={() => setDetailCard(cards[0] ?? null)}
           />
         )}
@@ -141,6 +168,8 @@ export default function Index() {
         onClose={() => setDetailCard(null)}
         onDecide={handleTrigger}
       />
+
+      <ProfileGuide visible={guideVisible} onClose={() => setGuideVisible(false)} />
 
       <MatchModal
         match={matchResult}

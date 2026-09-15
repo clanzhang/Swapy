@@ -179,14 +179,21 @@ class MockApi implements SwapyApi {
   async login(): Promise<LoginResult> {
     const cached = this.getCachedUser()
     const isNew = !cached
+    const me = this.me
 
-    if (cached) {
-      Object.assign(this.me, cached, { lastActiveAt: Date.now() })
-    } else {
-      this.me.lastActiveAt = Date.now()
+    if (cached) Object.assign(me, cached)
+    me.lastActiveAt = Date.now()
+
+    // 必须把用户落缓存。否则下次启动 getCachedUser() 还是 null，
+    // 于是 isNew 永远是 true —— 每个会话都被当成新用户。
+    try {
+      Taro.setStorageSync(USER_KEY, JSON.stringify(me))
+    } catch {
+      // ignore
     }
     this.persist()
-    return { user: { ...this.me }, isNew }
+
+    return { user: { ...me }, isNew }
   }
 
   getCachedUser(): User | null {
@@ -244,8 +251,9 @@ class MockApi implements SwapyApi {
 
         const owner = this.userById(item.ownerId)
         if (!owner) return false
-        // 同城
-        if (owner.city !== me.city) return false
+        // 同城。用户还没设置城市时不过滤 —— 否则新用户首页一片空白，
+        // 那比「看到外地物品」糟糕得多
+        if (me.city && owner.city !== me.city) return false
 
         // 估值区间有交集（我没有在架物品时不筛，避免新用户无卡可滑）
         if (myRanges.length) {

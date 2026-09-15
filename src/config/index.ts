@@ -19,8 +19,6 @@ export const COLLECTIONS = {
   messages: 'messages',
 } as const
 
-/** 当前用户「所在城市」兜底值，Mock 下也用它算距离 */
-export const DEFAULT_CITY = '上海'
 export const DEFAULT_LOCATION = { lat: 31.2304, lng: 121.4737 }
 
 /** 匹配成功订阅消息模板 ID，留空则跳过订阅 */
