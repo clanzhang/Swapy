@@ -107,4 +107,79 @@ if (offenders.length) {
   process.exit(1)
 }
 
-console.log('✓ 产物体检通过：无残留 process 引用，HTML 标签映射已启用')
+/**
+ * 闸门三：scroll-view 在 webview 渲染模式下不支持 padding。
+ *
+ * 它只打一条 warning、不报错，结果是内容直接贴到屏幕边缘，很难发现。
+ *
+ * 只检查 scroll-view **自身**的类名 —— 那确定会触发。
+ * 内层包装元素的 padding 是推荐的修法，不查（它是否也会告警目前无法
+ * 在本地验证，所以不当作错误，避免把正确写法标红）。
+ */
+function checkScrollViewPadding() {
+  const srcDir = path.resolve(__dirname, '..', 'src')
+  const offenders = []
+
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name)
+      if (entry.isDirectory()) {
+        walk(full)
+      } else if (entry.name.endsWith('.tsx')) {
+        collect(full)
+      }
+    }
+  }
+
+  const collect = (file) => {
+    const src = fs.readFileSync(file, 'utf8')
+    const rel = path.relative(path.resolve(__dirname, '..'), file)
+
+    const re = /<ScrollView\b[\s\S]*?className=(?:'([^']+)'|"([^"]+)")/g
+    let m
+    while ((m = re.exec(src)) !== null) {
+      const own = m[1] || m[2]
+      if (classHasPadding(own)) {
+        offenders.push({ file: rel, cls: own })
+      }
+    }
+  }
+
+  const classHasPadding = (cls) => {
+    for (const file of collectWxss(distDir)) {
+      const css = fs.readFileSync(file, 'utf8')
+      const rule = new RegExp(`\\.${cls.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}\\s*\\{([^}]*)\\}`)
+      const hit = css.match(rule)
+      if (hit && /(^|;|\s)padding/.test(hit[1])) return true
+    }
+    return false
+  }
+
+  walk(srcDir)
+
+  return offenders
+}
+
+function collectWxss(dir, out = []) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name)
+    if (entry.isDirectory()) collectWxss(full, out)
+    else if (entry.name.endsWith('.wxss')) out.push(full)
+  }
+  return out
+}
+
+const scrollViewOffenders = checkScrollViewPadding()
+if (scrollViewOffenders.length) {
+  console.error('\n✗ scroll-view 自身的类名上不能有 padding：\n')
+  for (const o of scrollViewOffenders) {
+    console.error(`  ${o.file}  .${o.cls}`)
+  }
+  console.error(
+    '\n  webview 模式下会被静默忽略（只打一条 warning），内容会贴到屏幕边缘。' +
+      '\n  改用 margin，或者再包一层 View 承载内边距。\n',
+  )
+  process.exit(1)
+}
+
+console.log('✓ 产物体检通过：无残留 process 引用，HTML 标签映射已启用，scroll-view 无 padding')

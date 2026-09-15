@@ -6,8 +6,10 @@
 .cat-filter__row {
   display: inline-flex;
   gap: 8px;
-  // 让第一个和最后一个 chip 不贴边
-  padding: 2px 16px 10px;
+  // 左右留白用 margin 而不是 padding。
+  // scroll-view 在 webview 模式下对 padding 有兼容问题（会打 warning），
+  // 而这一层是滚动内容的直接子元素，用 margin 最保险。
+  margin: 2px 16px 10px;
 }
 
 .cat-chip {

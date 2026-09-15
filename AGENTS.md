@@ -49,7 +49,7 @@
 | 命令 | 挡住的错误 |
 | --- | --- |
 | `pnpm lint` | hooks 依赖写错、未使用变量、`==` 误用 |
-| `pnpm verify:dist` | 残留的 `process.*`；产物里有 HTML 标签但没启用 html 插件 |
+| `pnpm verify:dist` | 残留的 `process.*`；产物里有 HTML 标签但没启用 html 插件；scroll-view 自身带 padding |
 | `pnpm verify:icons` | 图标渲染成 `<i>`；`-webkitMask` 没被转成合法 CSS；PNG 带白底 |
 | `pnpm verify:matching` | 匹配规则写错；分页漏卡；种子数据被改到「怎么点都不匹配」 |
 | `pnpm verify:store` | 牌堆状态机写错：重复扣额度、过期响应污染牌堆、失败后不回滚 |
