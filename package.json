@@ -1,6 +1,6 @@
 {
   "name": "swapy",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "private": true,
   "description": "换换 — 闲置物品滑动匹配交换小程序",
   "templateInfo": {
@@ -18,7 +18,8 @@
     "verify:matching": "node scripts/run-verify.cjs verify-matching",
     "verify:dist": "node scripts/check-dist.cjs",
     "verify:gesture": "node scripts/run-verify.cjs verify-gesture",
-    "verify": "pnpm typecheck && pnpm verify:matching && pnpm verify:gesture && pnpm verify:dist"
+    "verify": "pnpm typecheck && pnpm verify:matching && pnpm verify:gesture && pnpm verify:quota && pnpm verify:dist",
+    "verify:quota": "node scripts/run-verify.cjs verify-quota"
   },
   "browserslist": [
     "last 3 versions",

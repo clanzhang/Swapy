@@ -4,6 +4,8 @@
 
 发布自己的闲置，左右滑动浏览附近人的物品，双方互相「想要」时匹配成功，然后一对一聊怎么换。不涉及支付，交换默认线下当面完成。
 
+每天有 **30 次「想要」额度**，中午 12:00 刷新。左滑跳过不消耗额度。
+
 ## 技术栈
 
 | 层 | 选型 |
@@ -32,9 +34,10 @@ pnpm build:weapp    # 构建到 dist/
 | --- | --- |
 | `pnpm dev:weapp` / `pnpm build:weapp` | 开发（watch） / 构建 |
 | `pnpm typecheck` | TypeScript 检查 |
-| `pnpm verify` | 下面三项一起跑 |
+| `pnpm verify` | 下面四项一起跑 |
 | `pnpm verify:matching` | 匹配算法验证（12 项断言） |
 | `pnpm verify:gesture` | 滑动手势验证（12 项断言 + 参数表） |
+| `pnpm verify:quota` | 每日配额验证（10 项断言，含跨天重置） |
 | `pnpm verify:dist` | 产物体检 |
 
 ## 切换到真实云开发
@@ -90,6 +93,9 @@ scripts/                 # 行为验证脚本
   改动必须同步两边。`pnpm verify:matching` 验证的是 Mock 那份。
 - **手势参数在 `src/components/SwipeCard/gesture.ts` 顶部**。改完跑
   `pnpm verify:gesture`，它会打印一张行为表，不用通真机。
+- **配额规则在 `src/utils/quota.ts` 和 `cloudfunctions/{swipe,getCards}/quota.js`**。
+  每日上限和刷新整点是常量，改的时候三处要对齐。**判定只在服务端做**：
+  客户端只拿 `{ limit, used, remaining, resetAt }` 显示，不参与计算。
 - **图片切图用点击左右区域，不用横滑** —— 横滑手势留给「跳过 / 想要」。
 - **新增 NutUI 组件要在 `src/styles/nutui.ts` 补一行样式引入**，否则组件没有样式。
   全量引入会让 wxss 从 24KB 涨到 259KB。

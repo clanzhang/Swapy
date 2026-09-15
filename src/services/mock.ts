@@ -15,12 +15,14 @@ import type {
   Page,
   ProfilePatch,
   PublishItemInput,
+  QuotaState,
   Swipe,
   SwipeDirection,
   SwipeResult,
   User,
 } from '@/types'
 import { haversine } from '@/utils/geo'
+import { DAILY_QUOTA, nextResetAt, quotaDayKey } from '@/utils/quota'
 import { uid } from '@/utils'
 
 import type { SwapyApi } from './adapter'
@@ -35,6 +37,8 @@ interface MockDb {
   matches: Match[]
   messages: ChatMessage[]
   meId: string
+  /** 每日「想要」配额。dayKey 决定什么时候重置。 */
+  quota: { dayKey: string; used: number }
 }
 
 function seedDb(): MockDb {
@@ -45,6 +49,7 @@ function seedDb(): MockDb {
     matches: [],
     messages: [],
     meId: SEED_ME._id,
+    quota: { dayKey: quotaDayKey(Date.now()), used: 0 },
   }
 }
 
@@ -69,7 +74,13 @@ class MockApi implements SwapyApi {
       const raw = Taro.getStorageSync(DB_KEY)
       if (raw) {
         const parsed = JSON.parse(raw) as MockDb
-        if (parsed?.items?.length) return parsed
+        if (parsed?.items?.length) {
+          // 兼容旧版本的存档：补上后来才加的字段
+          if (!parsed.quota) {
+            parsed.quota = { dayKey: quotaDayKey(Date.now()), used: 0 }
+          }
+          return parsed
+        }
       }
     } catch {
       // 读坏了就重新播种，不让脏数据卡死整个 App
@@ -118,6 +129,28 @@ class MockApi implements SwapyApi {
     return { ...item, owner, distanceKm: this.distanceTo(owner) }
   }
 
+  // ---------------------------------------------------------------- 每日配额
+
+  /**
+   * 读配额。跨过刷新点（每天 12:00）会自动归零。
+   * dayKey 用北京时间算，不依赖设备时区 —— 否则出国或者改系统时间就能白嫖。
+   */
+  private readQuota(): QuotaState {
+    const now = Date.now()
+    const key = quotaDayKey(now)
+    if (this.db.quota.dayKey !== key) {
+      this.db.quota = { dayKey: key, used: 0 }
+      this.persist()
+    }
+    const used = this.db.quota.used
+    return {
+      limit: DAILY_QUOTA,
+      used,
+      remaining: Math.max(0, DAILY_QUOTA - used),
+      resetAt: nextResetAt(now),
+    }
+  }
+
   // -------------------------------------------------------------------- 用户
 
   async init(): Promise<User> {
@@ -161,6 +194,13 @@ class MockApi implements SwapyApi {
     const offset = Number(query.cursor || 0) || 0
     const limit = query.limit ?? 10
 
+    // 额度用完就不再发卡。这是唯一的下发口径，
+    // 页面不用自己拼「没卡了」和「额度没了」两种状态
+    const quota = this.readQuota()
+    if (quota.remaining <= 0) {
+      return { list: [], nextCursor: null, quota }
+    }
+
     const swipedIds = new Set(
       this.db.swipes.filter((s) => s.fromUserId === me._id).map((s) => s.toItemId),
     )
@@ -196,6 +236,7 @@ class MockApi implements SwapyApi {
     return {
       list: pool.slice(offset, offset + limit),
       nextCursor: offset + limit < pool.length ? String(offset + limit) : null,
+      quota,
     }
   }
 
@@ -204,7 +245,18 @@ class MockApi implements SwapyApi {
   async swipe(toItemId: string, direction: SwipeDirection): Promise<SwipeResult> {
     const me = this.me
     const target = this.itemById(toItemId)
-    if (!target) return { matched: false }
+    if (!target) return { matched: false, quota: this.readQuota() }
+
+    // 只有「想要」消耗额度，左滑跳过不扣
+    if (direction === 'right') {
+      const before = this.readQuota()
+      // 额度用完就整条不记录：否则用户明天回来会发现物品被「偷偷」跳过了，
+      // 而他并没有真的表达过想要
+      if (before.remaining <= 0) {
+        return { matched: false, quota: before }
+      }
+      this.db.quota.used += 1
+    }
 
     const existed = this.db.swipes.find(
       (s) => s.fromUserId === me._id && s.toItemId === toItemId,
@@ -222,7 +274,7 @@ class MockApi implements SwapyApi {
 
     if (direction === 'left') {
       this.persist()
-      return { matched: false }
+      return { matched: false, quota: this.readQuota() }
     }
 
     // 对方是否右滑过我的任一物品
@@ -238,7 +290,7 @@ class MockApi implements SwapyApi {
 
     if (!reciprocal) {
       this.persist()
-      return { matched: false }
+      return { matched: false, quota: this.readQuota() }
     }
 
     const already = this.db.matches.find(
@@ -265,7 +317,7 @@ class MockApi implements SwapyApi {
     }
 
     this.persist()
-    return { matched: true, match: this.toMatchView(match)! }
+    return { matched: true, match: this.toMatchView(match)!, quota: this.readQuota() }
   }
 
   /** 匹配成功后塞一句对方打招呼的话，让聊天页不是空的 */

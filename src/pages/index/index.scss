@@ -5,9 +5,16 @@
 
 .deck-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   padding: 10px 16px 8px;
+}
+
+.deck-head__left {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
 }
 
 .deck-head__title {
@@ -48,6 +55,11 @@
   justify-content: center;
   gap: 52px;
   padding: 18px 0 calc(14px + env(safe-area-inset-bottom));
+}
+
+// 额度用完时按钮行不渲染，用一块等高空位兜住底部安全区
+.deck-actions-spacer {
+  height: calc(78px + env(safe-area-inset-bottom));
 }
 
 .deck-btn {

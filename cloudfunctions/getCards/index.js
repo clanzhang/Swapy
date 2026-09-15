@@ -9,6 +9,8 @@ const users = db.collection('users')
 const items = db.collection('items')
 const swipes = db.collection('swipes')
 
+const { buildQuota, currentUsed } = require('./quota')
+
 /** 和客户端 constants 保持一致，改一处要一起改 */
 const MAX_DISTANCE_KM = 50
 const PRICE_RANGES = {
@@ -54,9 +56,19 @@ exports.main = async (event = {}) => {
   const offset = Number(event.cursor) || 0
   const categories = Array.isArray(event.categories) ? event.categories.filter(Boolean) : []
 
-  // 「我的想要」是另一个视图，复用同一个云函数避免多写一个
+  const now = Date.now()
+  const quota = buildQuota(currentUsed(me, now).used, now)
+
+  // 「我的想要」是另一个视图，复用同一个云函数避免多写一个。
+  // 它不受配额限制 —— 看自己点过什么是回顾，不是消耗
   if (event.scope === 'wanted') {
     return { ok: true, data: await getWanted(me) }
+  }
+
+  // 额度用完就不再发卡。这是唯一的下发口径，
+  // 页面不用自己拼「没卡了」和「额度没了」两种状态
+  if (quota.remaining <= 0) {
+    return { ok: true, data: { list: [], nextCursor: null, quota } }
   }
 
   const [swipeRes, myItemRes] = await Promise.all([
@@ -114,6 +126,7 @@ exports.main = async (event = {}) => {
     data: {
       list: page,
       nextCursor: offset + limit < list.length ? String(offset + limit) : null,
+      quota,
     },
   }
 }

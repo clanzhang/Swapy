@@ -10,6 +10,8 @@ const items = db.collection('items')
 const swipes = db.collection('swipes')
 const matches = db.collection('matches')
 
+const { DAILY_QUOTA, buildQuota, currentUsed } = require('./quota')
+
 /**
  * 匹配成功订阅消息模板 ID。
  * 在微信公众平台「订阅消息」里申请后填到这里，留空则跳过推送。
@@ -43,6 +45,18 @@ exports.main = async (event = {}) => {
   if (!target) return { ok: false, message: '物品不存在' }
   if (target.ownerId === me._id) return { ok: false, message: '不能滑自己的物品' }
 
+  const now = Date.now()
+
+  // 只有「想要」消耗额度，左滑跳过不扣
+  if (direction === 'right') {
+    const gate = await consumeOne(me, now)
+    if (!gate.allowed) {
+      // 额度用完就整条不记录：否则用户明天回来会发现物品被「偷偷」
+      // 跳过了，而他并没有真的表达过想要
+      return { ok: true, data: { matched: false, quota: buildQuota(gate.used, now) } }
+    }
+  }
+
   // 幂等：同一件物品重复滑只记一次，避免用户连点产生脏数据
   const existed = await swipes
     .where({ fromUserId: me._id, toItemId })
@@ -62,14 +76,14 @@ exports.main = async (event = {}) => {
   }
 
   if (direction === 'left') {
-    return { ok: true, data: { matched: false } }
+    return { ok: true, data: { matched: false, quota: await readQuota(me, now) } }
   }
 
   // 对方有没有右滑过我的任一物品
   const myItemRes = await items.where({ ownerId: me._id }).field({ _id: true }).limit(100).get()
   const myItemIds = myItemRes.data.map((i) => i._id)
   if (!myItemIds.length) {
-    return { ok: true, data: { matched: false } }
+    return { ok: true, data: { matched: false, quota: await readQuota(me, now) } }
   }
 
   const reciprocalRes = await swipes
@@ -84,7 +98,7 @@ exports.main = async (event = {}) => {
 
   const reciprocal = reciprocalRes.data[0]
   if (!reciprocal) {
-    return { ok: true, data: { matched: false } }
+    return { ok: true, data: { matched: false, quota: await readQuota(me, now) } }
   }
 
   // 同一对用户只保留一条匹配记录
@@ -98,7 +112,6 @@ exports.main = async (event = {}) => {
     .limit(1)
     .get()
 
-  const now = Date.now()
   let match = dupRes.data[0]
 
   if (!match) {
@@ -117,7 +130,57 @@ exports.main = async (event = {}) => {
     await notifyBoth(match, me, target.ownerId)
   }
 
-  return { ok: true, data: { matched: true, match: await buildMatchView(match, me._id) } }
+  return {
+    ok: true,
+    data: {
+      matched: true,
+      match: await buildMatchView(match, me._id),
+      quota: await readQuota(me, now),
+    },
+  }
+}
+
+/** 读一次配额（不消耗），用于回包 */
+async function readQuota(me, now) {
+  const fresh = await users.doc(me._id).get().catch(() => null)
+  const doc = (fresh && fresh.data) || me
+  return buildQuota(currentUsed(doc, now).used, now)
+}
+
+/**
+ * 消耗一次额度。用事务做「检查 + 自增」，防止连点超发。
+ *
+ * runTransaction 在某些环境下不可用，退化成非事务的「先读后写」：
+ * 并发连点理论上可能多算一次，但客户端已经做了手势锁，这里只作兜底。
+ */
+async function consumeOne(me, now) {
+  const { dayKey } = currentUsed(me, now)
+
+  try {
+    return await db.runTransaction(async (transaction) => {
+      const doc = await transaction.collection('users').doc(me._id).get()
+      const current = currentUsed((doc && doc.data) || me, now)
+      if (current.used >= DAILY_QUOTA) {
+        return { allowed: false, used: current.used }
+      }
+      const used = current.used + 1
+      await transaction
+        .collection('users')
+        .doc(me._id)
+        .update({ data: { quota: { dayKey, used, updatedAt: now } } })
+      return { allowed: true, used }
+    })
+  } catch (err) {
+    console.warn('配额事务不可用，退化为非事务写入', err && err.errMsg)
+    const fresh = await users.doc(me._id).get().catch(() => null)
+    const current = currentUsed((fresh && fresh.data) || me, now)
+    if (current.used >= DAILY_QUOTA) {
+      return { allowed: false, used: current.used }
+    }
+    const used = current.used + 1
+    await users.doc(me._id).update({ data: { quota: { dayKey, used, updatedAt: now } } })
+    return { allowed: true, used }
+  }
 }
 
 async function notifyBoth(match, me, peerId) {

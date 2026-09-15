@@ -6,6 +6,7 @@ import CardStack from '@/components/CardStack'
 import CategoryFilter from '@/components/CategoryFilter'
 import ItemDetailSheet from '@/components/ItemDetailSheet'
 import MatchModal from '@/components/MatchModal'
+import { QuotaBadge, QuotaLimit } from '@/components/Quota'
 import type { SwipeCardHandle } from '@/components/SwipeCard'
 import { MAX_DISTANCE_KM } from '@/constants'
 import { useDeckStore } from '@/store/deckStore'
@@ -23,6 +24,7 @@ export default function Index() {
   const hasMore = useDeckStore((s) => s.hasMore)
   const categories = useDeckStore((s) => s.categories)
   const matchResult = useDeckStore((s) => s.matchResult)
+  const quota = useDeckStore((s) => s.quota)
   const init = useDeckStore((s) => s.init)
   const setCategories = useDeckStore((s) => s.setCategories)
   const commitSwipe = useDeckStore((s) => s.commitSwipe)
@@ -47,7 +49,9 @@ export default function Index() {
 
   // 从发布页回来后，牌堆里应该能刷出自己刚发的物品，顺手重置一次
   useDidShow(() => {
-    if (bootedRef.current && !useDeckStore.getState().cards.length) {
+    const { cards, quota: current } = useDeckStore.getState()
+    // 额度用完时不要反复重试，否则会一直转
+    if (bootedRef.current && !cards.length && (current?.remaining ?? 1) > 0) {
       void useDeckStore.getState().init()
     }
   })
@@ -57,20 +61,29 @@ export default function Index() {
   }
 
   const isEmpty = !cards.length && !loading
+  const outOfQuota = (quota?.remaining ?? 1) <= 0
 
   return (
     <View className='page deck'>
       <View className='deck-head'>
-        <Text className='deck-head__title'>附近好物</Text>
-        <Text className='deck-head__meta'>
-          {user?.city || '上海'} · {MAX_DISTANCE_KM}km 内
-        </Text>
+        <View className='deck-head__left'>
+          <Text className='deck-head__title'>附近好物</Text>
+          <Text className='deck-head__meta'>
+            {user?.city || '上海'} · {MAX_DISTANCE_KM}km 内
+          </Text>
+        </View>
+        <QuotaBadge quota={quota} />
       </View>
 
       <CategoryFilter value={categories} onChange={(v) => void setCategories(v)} />
 
       <View className='deck-body'>
-        {isEmpty ? (
+        {outOfQuota ? (
+          <QuotaLimit
+            resetAt={quota!.resetAt}
+            onPublish={() => void Taro.switchTab({ url: '/pages/publish/index' })}
+          />
+        ) : isEmpty ? (
           <View className='empty'>
             <Text className='empty-emoji'>{hasMore ? '📭' : '🎉'}</Text>
             <Text className='empty-title'>
@@ -96,14 +109,18 @@ export default function Index() {
         )}
       </View>
 
-      <View className='deck-actions'>
-        <View className='deck-btn deck-btn--nope' onClick={() => handleTrigger('left')}>
-          <Text className='deck-btn__icon'>✕</Text>
+      {outOfQuota ? (
+        <View className='deck-actions-spacer' />
+      ) : (
+        <View className='deck-actions'>
+          <View className='deck-btn deck-btn--nope' onClick={() => handleTrigger('left')}>
+            <Text className='deck-btn__icon'>✕</Text>
+          </View>
+          <View className='deck-btn deck-btn--like' onClick={() => handleTrigger('right')}>
+            <Text className='deck-btn__icon'>❤</Text>
+          </View>
         </View>
-        <View className='deck-btn deck-btn--like' onClick={() => handleTrigger('right')}>
-          <Text className='deck-btn__icon'>❤</Text>
-        </View>
-      </View>
+      )}
 
       <ItemDetailSheet
         card={detailCard}

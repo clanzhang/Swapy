@@ -2,7 +2,7 @@ import { create } from 'zustand'
 
 import { CARD_PAGE_SIZE } from '@/constants'
 import { api } from '@/services'
-import type { CardItem, Category, MatchView, SwipeDirection } from '@/types'
+import type { CardItem, Category, MatchView, QuotaState, SwipeDirection } from '@/types'
 
 /** 剩余不足这个数就提前拉下一批，让「滑到底」这件事用户感知不到 */
 const PREFETCH_THRESHOLD = 3
@@ -16,6 +16,8 @@ interface DeckState {
   categories: Category[]
   /** 非空时首页弹出匹配成功动画 */
   matchResult: MatchView | null
+  /** 每日「想要」配额，由服务端下发 */
+  quota: QuotaState | null
 
   init(): Promise<void>
   loadMore(): Promise<void>
@@ -32,6 +34,7 @@ export const useDeckStore = create<DeckState>((set, get) => ({
   loading: false,
   categories: [],
   matchResult: null,
+  quota: null,
 
   async init() {
     set({ cards: [], cursor: null, hasMore: true, loading: false })
@@ -41,6 +44,8 @@ export const useDeckStore = create<DeckState>((set, get) => ({
   async loadMore() {
     const { loading, hasMore, cursor, categories } = get()
     if (loading || !hasMore) return
+    // 额度用完就别再拉卡了，服务端也不会给
+    if (get().quota && get().quota!.remaining <= 0) return
     set({ loading: true })
     try {
       const page = await api.getCards({
@@ -51,7 +56,9 @@ export const useDeckStore = create<DeckState>((set, get) => ({
       set({
         cards: [...get().cards, ...page.list],
         cursor: page.nextCursor,
-        hasMore: page.nextCursor !== null,
+        // 额度耗尽时无论游标如何都不再翻了
+        hasMore: page.nextCursor !== null && (page.quota?.remaining ?? 1) > 0,
+        quota: page.quota ?? get().quota,
       })
     } finally {
       set({ loading: false })
@@ -75,8 +82,13 @@ export const useDeckStore = create<DeckState>((set, get) => ({
     }
 
     const res = await api.swipe(card._id, direction)
+    set({ quota: res.quota })
     if (res.matched && res.match) {
       set({ matchResult: res.match })
+    }
+    // 最后一滴额度用完了，把牌堆清空，让首页直接进入引导态
+    if (res.quota.remaining <= 0) {
+      set({ cards: [], cursor: null, hasMore: false })
     }
   },
 

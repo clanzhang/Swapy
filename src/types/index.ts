@@ -99,6 +99,22 @@ export interface MatchView {
 export interface Page<T> {
   list: T[]
   nextCursor: string | null
+  /** 每日配额状态，跟卡片一起下发，省一次请求 */
+  quota?: QuotaState
+}
+
+/**
+ * 每日「想要」配额。
+ *
+ * 只由服务端计算 —— 客户端拿到的 remaining 是权威值，
+ * 自己不要根据本地时间推算，否则时区/跨天边界会对不上。
+ */
+export interface QuotaState {
+  limit: number
+  used: number
+  remaining: number
+  /** 下次刷新的时间戳 */
+  resetAt: number
 }
 
 export interface CardQuery {
@@ -119,6 +135,7 @@ export interface PublishItemInput {
 export interface SwipeResult {
   matched: boolean
   match?: MatchView
+  quota: QuotaState
 }
 
 export interface ProfilePatch {
