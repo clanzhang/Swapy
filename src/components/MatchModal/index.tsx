@@ -15,7 +15,8 @@ interface Props {
   onChat: (matchId: string) => void
 }
 
-const CONFETTI_COLORS = ['#FF6B35', '#FFD166', '#06D6A0', '#4CC9F0', '#FF8FA3', '#FFF3E0']
+// 撒花也走自然色系：墨绿 / 金棕 / 暖棕 为主，加一点奶油和浅绿提亮
+const CONFETTI_COLORS = ['#3C5434', '#C79A54', '#94601A', '#5F8578', '#E9EEE7', '#D9C7A3']
 
 export default function MatchModal({ match, onClose, onChat }: Props) {
   // 撒花粒子：位置/延迟/颜色都固定住，避免每次重渲染都在乱跳
@@ -67,7 +68,9 @@ export default function MatchModal({ match, onClose, onChat }: Props) {
 
       <View className='match-modal__content fade-up'>
         <Text className='match-modal__title'>匹配成功</Text>
-        <Text className='match-modal__sub'>你们都想要对方的物品，聊聊怎么换吧</Text>
+        <Text className='match-modal__sub'>
+          {match.otherUser.nickname} 也想要你的物品，聊聊怎么换吧
+        </Text>
 
         <View className='match-modal__pair'>
           <View className='match-modal__slot'>

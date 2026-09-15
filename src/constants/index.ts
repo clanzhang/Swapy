@@ -1,16 +1,32 @@
 import type { Category, Condition, PriceRange } from '@/types'
 
+/**
+ * 运行时用到的颜色（图标 color 属性等）。
+ * 必须和 src/styles/variables.scss 保持一致 —— 那边给样式用，这边给组件属性用。
+ */
 export const THEME = {
-  primary: '#FF6B35',
-  primaryDeep: '#E2551F',
-  primarySoft: '#FFF3E0',
-  text: '#1F1F1F',
-  textSub: '#8A8A8E',
-  textWeak: '#B8B8BD',
-  border: '#F0F0F0',
-  bg: '#F7F7F9',
+  /** 深墨绿：主按钮、选中态 */
+  primary: '#3C5434',
+  primaryDeep: '#2C3F26',
+  primarySoft: '#E9EEE7',
+  /** 暖棕：强调标签、估值高亮 */
+  accent: '#94601A',
+  accentSoft: '#F6EEE1',
+  /** 金棕：次级按钮、图标选中态 */
+  gold: '#C79A54',
+  /** 灰绿：品类标签、分割线 */
+  sage: '#5F8578',
+  /** 灰绿的深色字（胶囊标签文字） */
+  sageDeep: '#45685C',
+
+  text: '#080905',
+  textSub: '#9FA199',
+  textWeak: '#BFC1BA',
+
+  bg: '#FEFDFC',
+  border: 'rgba(159, 161, 153, 0.24)',
   success: '#2FBF71',
-  danger: '#FF4D4F',
+  danger: '#C0392B',
 }
 
 /**

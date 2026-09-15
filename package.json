@@ -1,6 +1,6 @@
 {
   "name": "swapy",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "private": true,
   "description": "换换 — 闲置物品滑动匹配交换小程序",
   "templateInfo": {
@@ -18,7 +18,7 @@
     "verify:matching": "node scripts/run-verify.cjs verify-matching",
     "verify:dist": "node scripts/check-dist.cjs",
     "verify:gesture": "node scripts/run-verify.cjs verify-gesture",
-    "verify": "pnpm lint && pnpm typecheck && pnpm verify:matching && pnpm verify:store && pnpm verify:user && pnpm verify:gesture && pnpm verify:quota && pnpm verify:moderation && pnpm verify:icons && pnpm verify:dist",
+    "verify": "pnpm lint && pnpm typecheck && pnpm verify:theme && pnpm verify:matching && pnpm verify:store && pnpm verify:user && pnpm verify:gesture && pnpm verify:quota && pnpm verify:moderation && pnpm verify:icons && pnpm verify:dist",
     "verify:quota": "node scripts/run-verify.cjs verify-quota",
     "gen:tab-icons": "node scripts/generate-tab-icons.cjs",
     "prebuild:weapp": "node scripts/generate-tab-icons.cjs",
@@ -26,7 +26,8 @@
     "verify:moderation": "node scripts/run-verify.cjs verify-moderation",
     "verify:store": "node scripts/run-verify.cjs verify-store",
     "lint": "eslint src cloudfunctions scripts --ext .ts,.tsx,.js,.cjs --max-warnings 0",
-    "verify:user": "node scripts/run-verify.cjs verify-user"
+    "verify:user": "node scripts/run-verify.cjs verify-user",
+    "verify:theme": "node scripts/run-verify.cjs verify-theme"
   },
   "browserslist": [
     "last 3 versions",

@@ -13,7 +13,7 @@
   right: 0;
   bottom: 0;
   left: 0;
-  background: rgba(20, 20, 26, 0.45);
+  background: rgba(8, 9, 5, 0.6);
   animation: guide-mask-in 200ms ease-out both;
 }
 
@@ -43,7 +43,8 @@
 .guide__title {
   display: block;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 500;
+  color: $text;
 }
 
 .guide__desc {
@@ -86,7 +87,7 @@
   width: 64px;
   height: 64px;
   overflow: hidden;
-  border: 2px dashed #dedee3;
+  border: 2px dashed rgba(159, 161, 153, 0.45);
   border-radius: 50%;
   background: $brand-soft;
 }
@@ -97,9 +98,9 @@
 }
 
 .guide__avatar-text {
-  color: $brand-deep;
+  color: $sage;
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .guide__avatar-hint {
@@ -134,7 +135,7 @@
 .guide__input {
   padding: 10px 12px;
   border-radius: 10px;
-  background: $bg;
+  background: $subtle;
   font-size: 14px;
 }
 
@@ -156,16 +157,16 @@
   padding: 5px 12px;
   border: 1px solid $border;
   border-radius: $radius-chip;
-  background: #fbfbfd;
+  background: $subtle;
   color: $text-sub;
   font-size: 12px;
 }
 
 .guide__city--on {
   border-color: $brand;
-  background: $brand-soft;
-  color: $brand-deep;
-  font-weight: 600;
+  background: $brand;
+  color: $bg;
+  font-weight: 500;
 }
 
 // ------------------------------------------------------------------ 操作

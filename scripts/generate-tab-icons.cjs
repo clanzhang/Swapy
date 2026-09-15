@@ -31,8 +31,10 @@ const SIZE = 81
 const INSET = 0.1
 
 const COLORS = {
-  normal: '#999999',
-  active: '#FF6B35',
+  // 未选中：灰绿（辅助信息那一档）
+  normal: '#9FA199',
+  // 选中：深墨绿
+  active: '#3C5434',
 }
 
 /**

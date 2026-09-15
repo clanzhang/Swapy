@@ -13,7 +13,8 @@
   right: 0;
   bottom: 0;
   left: 0;
-  background: linear-gradient(160deg, rgba(255, 107, 53, 0.96) 0%, rgba(226, 85, 31, 0.98) 100%);
+  // 规范：全屏半透明遮罩（深墨色 60%）
+  background: rgba(8, 9, 5, 0.6);
 }
 
 // --------------------------------------------------------------- 撒花
@@ -68,16 +69,18 @@
   flex-direction: column;
   align-items: center;
   padding: 28px 20px 22px;
+  // 规范：中间白色卡片，大圆角
   border-radius: 20px;
-  background: #fff;
+  background: $card;
   box-shadow: $shadow-float;
   transform: translateY(-50%);
 }
 
 .match-modal__title {
+  // 规范：标题深墨绿
   color: $brand;
-  font-size: 24px;
-  font-weight: 800;
+  font-size: 22px;
+  font-weight: 600;
   letter-spacing: 1px;
 }
 
@@ -108,9 +111,8 @@
   width: 86px;
   height: 86px;
   overflow: hidden;
-  border: 2px solid $brand-soft;
-  border-radius: 16px;
-  box-shadow: 0 6px 16px rgba(24, 24, 32, 0.12);
+  border-radius: 14px;
+  box-shadow: 0 6px 16px rgba(8, 9, 5, 0.1);
 }
 
 .match-modal__slot-label {
@@ -157,16 +159,18 @@
   height: 46px;
   border-radius: $radius-btn;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .match-modal__btn--primary {
   background: $brand;
-  color: #fff;
+  color: $bg;
   box-shadow: $shadow-brand;
 }
 
 .match-modal__btn--ghost {
-  color: $text-sub;
+  // 规范：继续刷用灰绿描边
+  border: 1.5px solid rgba(95, 133, 120, 0.5);
+  color: $sage;
   font-weight: 500;
 }

@@ -36,7 +36,7 @@ export default function CategoryFilter({ value, onChange }: Props) {
             <CategoryIcon
               category={c.key}
               size={13}
-              color={value.includes(c.key) ? '#FFFFFF' : THEME.textSub}
+              color={value.includes(c.key) ? THEME.bg : THEME.sage}
             />
             <Text className='cat-chip__label'>{c.key}</Text>
           </View>

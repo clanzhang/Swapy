@@ -232,7 +232,7 @@ function main() {
         .join(' ')
 
     const css = serialize({
-      backgroundColor: '#FF6B35',
+      backgroundColor: '#3C5434',
       mask: "url('data:image/svg+xml;base64,AAA') 0 0/100% 100% no-repeat",
       '-webkitMask': "url('data:image/svg+xml;base64,AAA') 0 0/100% 100% no-repeat",
       width: '24px',
@@ -243,7 +243,7 @@ function main() {
       css.includes('-webkit-mask: url('),
       `-webkitMask 没有转换成 -webkit-mask，图标会变成纯色方块。实际：${css}`,
     )
-    assert.ok(css.includes('background-color: #FF6B35'), '背景色没有输出')
+    assert.ok(css.includes('background-color: #3C5434'), '背景色没有输出')
   })
 
   step('app.config 里的 tabBar 图标在产物目录里都存在', () => {
@@ -261,14 +261,14 @@ function main() {
 
   step('TabBar 图标：81×81、带透明通道、颜色正确', () => {
     const expected = [
-      { file: 'tab/home.png', color: '#999999' },
-      { file: 'tab/home-active.png', color: '#FF6B35' },
-      { file: 'tab/publish.png', color: '#999999' },
-      { file: 'tab/publish-active.png', color: '#FF6B35' },
-      { file: 'tab/matches.png', color: '#999999' },
-      { file: 'tab/matches-active.png', color: '#FF6B35' },
-      { file: 'tab/profile.png', color: '#999999' },
-      { file: 'tab/profile-active.png', color: '#FF6B35' },
+      { file: 'tab/home.png', color: '#9FA199' },
+      { file: 'tab/home-active.png', color: '#3C5434' },
+      { file: 'tab/publish.png', color: '#9FA199' },
+      { file: 'tab/publish-active.png', color: '#3C5434' },
+      { file: 'tab/matches.png', color: '#9FA199' },
+      { file: 'tab/matches-active.png', color: '#3C5434' },
+      { file: 'tab/profile.png', color: '#9FA199' },
+      { file: 'tab/profile-active.png', color: '#3C5434' },
     ]
 
     for (const { file, color } of expected) {

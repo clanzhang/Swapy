@@ -18,10 +18,10 @@
   gap: 4px;
   height: 30px;
   padding: 0 13px;
-  border: 1px solid $border;
+  border: 1px solid rgba(95, 133, 120, 0.4);
   border-radius: $radius-chip;
-  background: $card;
-  color: $text-sub;
+  background: transparent;
+  color: $sage;
   font-size: 13px;
   transition:
     background 160ms ease,
@@ -36,7 +36,7 @@
 .cat-chip--on {
   border-color: $brand;
   background: $brand;
-  color: #fff;
-  font-weight: 600;
-  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.28);
+  color: $bg;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(60, 84, 52, 0.24);
 }

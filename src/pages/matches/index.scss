@@ -16,9 +16,9 @@
 .match-row {
   margin-bottom: 12px;
   padding: 14px;
-  border-radius: $radius-card;
-  background: $card;
-  box-shadow: 0 2px 10px rgba(24, 24, 32, 0.05);
+  // 规范：卡片底色浅灰绿，圆角 16rpx
+  border-radius: 8px;
+  background: $subtle;
 }
 
 .match-row__head {
@@ -34,10 +34,10 @@
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: $brand-soft;
-  color: $brand-deep;
+  background: $brand;
+  color: $bg;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .match-row__who {
@@ -103,7 +103,7 @@
   margin-top: 12px;
   padding: 8px 10px;
   border-radius: 10px;
-  background: $bg;
+  background: rgba(255, 255, 255, 0.7);
   color: $text-sub;
   font-size: 12px;
 }

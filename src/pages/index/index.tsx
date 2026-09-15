@@ -155,10 +155,10 @@ export default function Index() {
       ) : (
         <View className='deck-actions'>
           <View className='deck-btn deck-btn--nope' onClick={() => handleTrigger('left')}>
-            <Close size={24} color='#999999' />
+            <Close size={22} color={THEME.sage} />
           </View>
           <View className='deck-btn deck-btn--like' onClick={() => handleTrigger('right')}>
-            <Heart size={24} color={THEME.primary} />
+            <Heart size={22} color='#FEFDFC' />
           </View>
         </View>
       )}

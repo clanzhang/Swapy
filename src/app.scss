@@ -3,7 +3,7 @@ page {
 
   background: $bg;
   color: $text;
-  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+  font-family: 'PingFang SC', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
   font-size: 14px;
   line-height: 1.5;
 }
@@ -59,8 +59,20 @@ scroll-view {
   -webkit-line-clamp: 2;
 }
 
-// ------------------------------------------------------------------ 标签 / 徽标
+/** 数字统一走等宽感更强的字体（估值、倒计时、剩余次数） */
+.num {
+  font-family: $font-number;
+  font-variant-numeric: tabular-nums;
+}
 
+// ------------------------------------------------------------------ 标签胶囊
+
+/**
+ * .tag      品类标签 —— 灰绿底
+ * .tag-plain 成色 / 估值 —— 暖棕底
+ *
+ * 类名沿用旧的一套，避免动一堆调用点；语义以这里为准。
+ */
 .tag {
   display: inline-flex;
   align-items: center;
@@ -68,8 +80,8 @@ scroll-view {
   height: 22px;
   padding: 0 8px;
   border-radius: 11px;
-  background: $brand-soft;
-  color: $brand-deep;
+  background: $sage-soft;
+  color: $sage-deep;
   font-size: 11px;
   line-height: 1;
 }
@@ -80,8 +92,8 @@ scroll-view {
 }
 
 .tag-plain {
-  background: #f4f4f6;
-  color: $text-sub;
+  background: $accent-soft;
+  color: $accent;
 }
 
 // --------------------------------------------------------------------- 空状态
@@ -104,7 +116,7 @@ scroll-view {
 
 .empty-title {
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 500;
   color: $text;
 }
 

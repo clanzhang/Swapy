@@ -6,7 +6,14 @@ import { type ReactNode, useMemo, useState } from 'react'
 import { Close, Plus, Warning } from '@/components/Icon'
 import CategoryIcon from '@/components/CategoryIcon'
 import ItemImage from '@/components/ItemImage'
-import { CATEGORIES, CONDITIONS, MAX_ITEM_IMAGES, PRICE_RANGES, THEME } from '@/constants'
+import {
+  CATEGORIES,
+  CATEGORY_MAP,
+  CONDITIONS,
+  MAX_ITEM_IMAGES,
+  PRICE_RANGES,
+  THEME,
+} from '@/constants'
 import { itemService } from '@/services'
 import type { Category, Condition, PriceRange } from '@/types'
 import { describeHits, moderateItem } from '@/utils/moderation'
@@ -73,12 +80,24 @@ function ModerationNotice({ hits }: { hits: ModerationHit[] }) {
 function Field({
   label,
   hint,
+  inline = false,
   children,
 }: {
   label: string
   hint?: string
+  /** 标签左、控件右的同行布局（名称这种短输入用） */
+  inline?: boolean
   children: ReactNode
 }) {
+  if (inline) {
+    return (
+      <View className='field field--inline'>
+        <Text className='field__label'>{label}</Text>
+        {children}
+      </View>
+    )
+  }
+
   return (
     <View className='field'>
       <View className='field__head'>
@@ -149,7 +168,7 @@ export default function Publish() {
         content: describeHits(moderation.hits),
         showCancel: false,
         confirmText: '我知道了',
-        confirmColor: '#FF6B35',
+        confirmColor: '#3C5434',
       })
     }
 
@@ -172,7 +191,7 @@ export default function Publish() {
           content: res.error || '请稍后重试',
           showCancel: false,
           confirmText: '我知道了',
-          confirmColor: '#FF6B35',
+          confirmColor: '#3C5434',
         })
       }
 
@@ -187,7 +206,7 @@ export default function Publish() {
         content: '网络不太好，请稍后重试',
         showCancel: false,
         confirmText: '我知道了',
-        confirmColor: '#FF6B35',
+        confirmColor: '#3C5434',
       })
     } finally {
       setSubmitting(false)
@@ -201,18 +220,28 @@ export default function Publish() {
         <View className='publish__inner'>
           <Field label='物品图片' hint={`${images.length}/${MAX_ITEM_IMAGES}`}>
             <View className='uploader'>
+              {/* 规范：第一格是虚线边框的添加按钮 */}
+              {images.length < MAX_ITEM_IMAGES && (
+                <View
+                  className='uploader__cell uploader__cell--add'
+                  onClick={() => void chooseImages()}
+                >
+                  <Plus size={22} color={THEME.sage} />
+                  <Text className='uploader__tip'>添加图片</Text>
+                </View>
+              )}
               {images.map((src, i) => (
                 <View key={`${src}-${i}`} className='uploader__cell'>
                   <ItemImage
                     src={src}
-                    emoji={category ? (CATEGORIES.find((c) => c.key === category)?.emoji ?? '📦') : '📦'}
+                    emoji={category ? (CATEGORY_MAP[category]?.emoji ?? '📦') : '📦'}
                     className='uploader__img'
                   />
                   <View
                     className='uploader__remove'
                     onClick={() => setImages((prev) => prev.filter((_, idx) => idx !== i))}
                   >
-                    <Close size={12} color='#FFFFFF' />
+                    <Close size={12} color='#FEFDFC' />
                   </View>
                   {i === 0 && (
                     <View className='uploader__cover'>
@@ -221,25 +250,24 @@ export default function Publish() {
                   )}
                 </View>
               ))}
-              {images.length < MAX_ITEM_IMAGES && (
-                <View className='uploader__cell uploader__cell--add' onClick={() => void chooseImages()}>
-                  <Plus size={22} color={THEME.primary} />
-                  <Text className='uploader__tip'>拍照 / 相册</Text>
-                </View>
-              )}
             </View>
           </Field>
 
-          <Field label='物品名称'>
+          <Field label='物品名称' inline>
             <Input
-              className='field__input'
+              className='field__input field__input--inline'
+              align='right'
               value={title}
               maxLength={30}
               placeholder='例如：Switch OLED 白色 日版'
               onChange={(v) => setTitle(v)}
             />
-            {!moderation.ok && <ModerationNotice hits={moderation.hits} />}
           </Field>
+          {!moderation.ok && (
+            <View className='field field--notice'>
+              <ModerationNotice hits={moderation.hits} />
+            </View>
+          )}
 
           <Field label='品类'>
             <ChipGroup<Category> options={CATEGORIES} value={category} onChange={setCategory} withIcon />
@@ -265,7 +293,6 @@ export default function Publish() {
               placeholder='说说使用情况、有无磕碰、配件是否齐全…'
               onChange={(v) => setDescription(v)}
             />
-            {!moderation.ok && <ModerationNotice hits={moderation.hits} />}
           </Field>
 
           <View className='publish__safe-area' />

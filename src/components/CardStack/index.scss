@@ -10,8 +10,10 @@
   right: 0;
   bottom: 0;
   left: 0;
-  transform-origin: 50% 100%;
+  // 从顶边缩放：这样后方卡片的顶边会从当前卡片上方露出来
+  transform-origin: 50% 0;
+  // 规范：动画 300ms ease-out
   transition:
-    transform 220ms ease,
-    opacity 220ms ease;
+    transform 300ms ease-out,
+    opacity 300ms ease-out;
 }

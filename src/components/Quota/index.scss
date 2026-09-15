@@ -11,15 +11,16 @@
 }
 
 .quota-badge--low {
-  background: #fff0e8;
+  background: $accent-soft;
 }
 
 .quota-badge--gone {
-  background: #f2f2f5;
+  background: $subtle;
   color: $text-weak;
 }
 
 .quota-badge__num {
+  font-family: $font-number;
   font-size: 15px;
   font-weight: 700;
   line-height: 1;
@@ -69,7 +70,7 @@
   padding: 14px 32px;
   border-radius: 14px;
   background: $card;
-  box-shadow: 0 2px 10px rgba(24, 24, 32, 0.05);
+  box-shadow: 0 2px 10px rgba(8, 9, 5, 0.04);
 }
 
 .quota-limit__timer-label {
@@ -79,7 +80,7 @@
 
 .quota-limit__timer-value {
   margin-top: 4px;
-  color: $brand;
+  color: $accent;
   font-size: 20px;
   font-weight: 700;
   // 秒在跳，定宽避免整块左右抖动
@@ -95,9 +96,9 @@
   margin-top: 26px;
   border-radius: $radius-btn;
   background: $brand;
-  color: #fff;
+  color: $bg;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 500;
   box-shadow: $shadow-brand;
 }
 

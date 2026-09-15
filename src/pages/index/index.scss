@@ -30,10 +30,11 @@
 
 .deck-body {
   display: flex;
-  flex: 1;
-  min-height: 0;
+  // 规范：卡片占屏幕 70% 高度（顶部留一点余量给后方卡片的顶边）
+  flex: none;
+  height: 70vh;
   flex-direction: column;
-  padding: 0 16px;
+  padding: 18px 16px 0;
 }
 
 .deck-empty-btn {
@@ -41,7 +42,7 @@
   padding: 9px 22px;
   border-radius: $radius-btn;
   background: $brand;
-  color: #fff;
+  color: $bg;
   font-size: 13px;
   font-weight: 600;
   box-shadow: $shadow-brand;
@@ -53,7 +54,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 52px;
+  // 规范：两个按钮间距 80rpx
+  gap: 40px;
+  margin-top: auto;
   padding: 18px 0 calc(14px + env(safe-area-inset-bottom));
 }
 
@@ -98,8 +101,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 60px;
-  height: 60px;
+  // 规范：两个按钮等大 96rpx
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: $card;
   transition: transform 120ms ease;
@@ -110,11 +114,13 @@
 }
 
 .deck-btn--nope {
-  color: #9aa0a6;
-  box-shadow: 0 6px 18px rgba(24, 24, 32, 0.14);
+  border: 1.5px solid $sage;
+  background: transparent;
+  color: $sage;
+  box-shadow: 0 4px 14px rgba(8, 9, 5, 0.06);
 }
 
 .deck-btn--like {
-  color: $brand;
+  background: $brand;
   box-shadow: $shadow-brand;
 }

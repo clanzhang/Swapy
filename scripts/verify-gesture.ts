@@ -191,12 +191,14 @@ function main() {
     assert.equal(stampOpacity(0, -DETAIL_THRESHOLD, CARD_W).up, 1)
   })
 
-  step('飞出参数：右滑放大发亮，左滑缩小', () => {
+  step('飞出参数：右滑放大发亮，左滑不缩放', () => {
     // 直接测组件真正调用的那个函数，而不是只对比常量
     assert.equal(flyScale('right'), FLY_SCALE_LIKE)
     assert.equal(flyScale('left'), FLY_SCALE_NOPE)
-    assert.ok(FLY_SCALE_LIKE > 1, '右滑应该放大')
-    assert.ok(FLY_SCALE_NOPE < 1, '左滑应该缩小')
+    // 规范：右滑轻微放大 1.05x；左滑只平移 + 旋转，不缩放
+    assert.equal(FLY_SCALE_LIKE, 1.05, '右滑应该轻微放大')
+    assert.equal(FLY_SCALE_NOPE, 1, '左滑不应该缩放')
+    assert.equal(FLY_ROTATE, 15, '飞出旋转角应为 15°')
     assert.equal(flyRotation('right'), FLY_ROTATE)
     assert.equal(flyRotation('left'), -FLY_ROTATE)
   })

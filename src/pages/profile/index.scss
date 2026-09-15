@@ -6,25 +6,23 @@
 .profile__body {
   flex: 1;
   min-height: 0;
-  }
+}
+
+.profile__inner {
+  padding: 16px 16px 0;
+}
 
 .profile__safe-area {
-  height: 20px;
+  height: 24px;
 }
 
-// ------------------------------------------------------------------ 资料卡
-
-.profile__card {
-  padding: 16px 14px;
-  border-radius: $radius-card;
-  background: linear-gradient(150deg, $brand 0%, $brand-deep 100%);
-  box-shadow: $shadow-brand;
-}
+// ------------------------------------------------------------------ 用户信息
 
 .profile__head {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  padding: 8px 2px 20px;
 }
 
 .profile__avatar {
@@ -32,127 +30,122 @@
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  border: 2px solid rgba(255, 255, 255, 0.5);
+  width: 56px;
+  height: 56px;
+  overflow: hidden;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.22);
-  color: #fff;
-  font-size: 20px;
-  font-weight: 700;
+  background: $subtle;
+}
+
+.profile__avatar-img {
+  width: 100%;
+  height: 100%;
 }
 
 .profile__who {
   display: flex;
   flex: 1;
   flex-direction: column;
+  gap: 3px;
   min-width: 0;
 }
 
 .profile__name {
-  color: #fff;
   font-size: 17px;
-  font-weight: 700;
+  font-weight: 500;
+  color: $text;
 }
 
 .profile__meta {
-  margin-top: 2px;
-  color: rgba(255, 255, 255, 0.82);
-  font-size: 11px;
+  color: $text-sub;
+  font-size: 12px;
 }
 
-.profile__edit {
+// ------------------------------------------------------------------ 功能入口
+
+.entries {
+  border-top: 1px solid $divider;
+}
+
+.entry {
   display: flex;
-  flex: none;
   align-items: center;
-  gap: 4px;
-  padding: 5px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  border-radius: 14px;
-  color: #fff;
-  font-size: 11px;
+  gap: 10px;
+  height: 52px;
+  border-bottom: 1px solid $divider;
 }
 
-.profile__edit-text {
-  font-size: 11px;
+.entry__label {
+  flex: 1;
+  font-size: 14px;
+  color: $text;
 }
 
-// ------------------------------------------------------------------ 编辑态
-
-.profile__editor {
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.25);
+.entry__count {
+  color: $text-sub;
+  font-size: 13px;
 }
+
+.entry__arrow {
+  transition: transform 220ms ease-out;
+}
+
+.entry__arrow--open {
+  transform: rotate(180deg);
+}
+
+.entry__panel {
+  padding: 12px 0 14px;
+  border-bottom: 1px solid $divider;
+}
+
+// ------------------------------------------------------------------ 设置表单
 
 .profile__editor-label {
   display: block;
   margin-bottom: 6px;
-  color: rgba(255, 255, 255, 0.85);
+  color: $text-sub;
+  font-size: 12px;
+}
+
+.profile__editor-hint {
+  display: block;
+  margin-bottom: 8px;
+  color: $text-weak;
   font-size: 11px;
 }
 
 .profile__editor-input {
-  margin-bottom: 14px;
-  padding: 9px 12px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.92);
+  background: $subtle;
   font-size: 14px;
 }
 
 .profile__cities {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 16px;
+  gap: 8px;
+  margin-bottom: 18px;
 }
 
 .profile__city {
   padding: 5px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  border-radius: 14px;
-  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid $border;
+  border-radius: $radius-chip;
+  color: $text-sub;
   font-size: 12px;
 }
 
 .profile__city--on {
-  border-color: #fff;
-  background: #fff;
-  color: $brand-deep;
-  font-weight: 600;
+  border-color: $brand;
+  background: $brand;
+  color: $bg;
+  font-weight: 500;
 }
 
-// ------------------------------------------------------------------ Tab
-
-.profile__tabs {
-  display: flex;
-  gap: 8px;
-  margin: 16px 0 12px;
-}
-
-.profile__tab {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 7px 14px;
-  border-radius: $radius-chip;
-  background: $card;
-  color: $text-sub;
-  font-size: 13px;
-  transition: all 160ms ease;
-}
-
-.profile__tab-text {
-  font-size: 13px;
-}
-
-.profile__tab--on {
-  background: $brand-soft;
-  color: $brand-deep;
-  font-weight: 600;
-}
-
-// ------------------------------------------------------------------ 列表
+// ------------------------------------------------------------------ 列表项
 
 .row-card {
   display: flex;
@@ -160,9 +153,8 @@
   gap: 10px;
   margin-bottom: 10px;
   padding: 10px;
-  border-radius: 14px;
-  background: $card;
-  box-shadow: 0 2px 10px rgba(24, 24, 32, 0.05);
+  border-radius: 10px;
+  background: $subtle;
 }
 
 .row-card__thumb {
@@ -171,7 +163,7 @@
   height: 62px;
   overflow: hidden;
   border-radius: 10px;
-  background: $bg;
+  background: $card;
 }
 
 .row-card__main {
@@ -184,7 +176,7 @@
 
 .row-card__title {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .row-card__tags {
@@ -206,19 +198,16 @@
 }
 
 .row-card__status--active {
-  color: $green;
+  color: $sage;
 }
 
-.row-card__status--swapped {
-  color: $text-weak;
-}
-
+.row-card__status--swapped,
 .row-card__status--off {
   color: $text-weak;
 }
 
 .row-card__status--liked {
-  color: $brand;
+  color: $accent;
 }
 
 .row-card__action {
@@ -233,17 +222,12 @@
 
 .profile__empty {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: 46px 0;
-}
-
-.profile__empty-emoji {
-  font-size: 34px;
+  justify-content: center;
+  padding: 34px 0;
 }
 
 .profile__empty-text {
-  margin-top: 8px;
   color: $text-weak;
   font-size: 12px;
 }
@@ -255,12 +239,9 @@
   align-items: center;
   justify-content: center;
   height: 40px;
-  border: 1px dashed #d9d9de;
-  border-radius: 12px;
+  margin-top: 14px;
+  border: 1px dashed $border;
+  border-radius: 10px;
   color: $text-weak;
   font-size: 12px;
-}
-
-.profile__inner {
-  padding: 12px 16px 0;
 }

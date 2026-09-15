@@ -34,8 +34,10 @@ export default function CardStack({ cards, topRef, cardWidth, onDecide, onDetail
               ? { zIndex: 30 }
               : {
                   zIndex: 30 - depth * 10,
-                  opacity: depth === 2 ? 0.55 : 1,
-                  transform: `translateY(${depth * 10}px) scale(${1 - depth * 0.045})`,
+                  opacity: depth === 2 ? 0.7 : 1,
+                  // 规范：后方卡片露出顶边，带轻微缩放。
+                  // 新卡片顶上来时会从 0.96 -> 1 自然过渡（slot 上带 transition）
+                  transform: `translateY(${-depth * 8}px) scale(${1 - depth * 0.04})`,
                 }
           }
         >

@@ -15,17 +15,20 @@ export const DETAIL_THRESHOLD = 80
 /** 拖动过程中的最大旋转角（度） */
 export const DRAG_ROTATE = 14
 
+/** 飞出过程中的透明度：规范要求渐隐 */
+export const FLY_OPACITY = 0
+
 /** 旋转达到最大值所需的横向位移（占卡片宽度比例，越小越灵敏） */
 export const ROTATE_RATIO = 0.4
 
-/** 飞出时的旋转角（度） */
-export const FLY_ROTATE = 18
+/** 飞出时的旋转角（度）。规范：左滑逆时针 15°，右滑顺时针 15° */
+export const FLY_ROTATE = 15
 
-/** 右滑飞出时的放大倍数 */
-export const FLY_SCALE_LIKE = 1.08
+/** 右滑飞出时的放大倍数。规范：轻微放大 1.05x */
+export const FLY_SCALE_LIKE = 1.05
 
-/** 左滑飞出时的缩小倍数 */
-export const FLY_SCALE_NOPE = 0.96
+/** 左滑飞出时的缩放。规范里左滑只平移+旋转，不缩放 */
+export const FLY_SCALE_NOPE = 1
 
 /**
  * 甩动判定：速度超过这个值（px/ms）且位移超过 FLING_MIN_DISTANCE，

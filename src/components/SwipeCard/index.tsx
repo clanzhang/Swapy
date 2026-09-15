@@ -12,6 +12,7 @@ import ItemImagePager from '../ItemImagePager'
 
 import {
   FLING_STALE_MS,
+  FLY_OPACITY,
   decideOutcome,
   dragRotation,
   flyRotation,
@@ -205,8 +206,9 @@ export default forwardRef<SwipeCardHandle, Props>(function SwipeCard(
   }
 
   const rotate = flying ? flyRotation(flying) : dragRotation(pos.x, cardWidth)
-  // 右滑想要：放大 + 发光，飞出去的那一刻给足正反馈
+  // 右滑想要：放大 + 发光；左滑只平移旋转。飞出过程中都要渐隐
   const scale = flying ? flyScale(flying) : 1
+  const opacity = flying ? FLY_OPACITY : 1
 
   const { like: likeOpacity, nope: nopeOpacity, up: upOpacity } = stampOpacity(
     pos.x,
@@ -226,6 +228,7 @@ export default forwardRef<SwipeCardHandle, Props>(function SwipeCard(
         className={`swipe-card__mover swipe-card__mover--${phase}`}
         style={{
           transform: `translate3d(${pos.x}px, ${pos.y}px, 0) rotate(${rotate}deg) scale(${scale})`,
+          opacity,
         }}
       >
         <View className={`swipe-card ${flying === 'right' ? 'swipe-card--glow' : ''}`}>

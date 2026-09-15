@@ -7,8 +7,8 @@ export default defineAppConfig({
     'pages/chat/index',
   ],
   tabBar: {
-    color: '#999999',
-    selectedColor: '#FF6B35',
+    color: '#9FA199',
+    selectedColor: '#3C5434',
     backgroundColor: '#FFFFFF',
     borderStyle: 'white',
     // 原生 tabBar 不支持图标组件，也不支持 SVG，只能用本地 PNG。
@@ -42,8 +42,8 @@ export default defineAppConfig({
   },
   window: {
     backgroundTextStyle: 'dark',
-    backgroundColor: '#F7F7F9',
-    navigationBarBackgroundColor: '#FFFFFF',
+    backgroundColor: '#FEFDFC',
+    navigationBarBackgroundColor: '#FEFDFC',
     navigationBarTitleText: '换换',
     navigationBarTextStyle: 'black',
   },
