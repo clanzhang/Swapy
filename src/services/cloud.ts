@@ -127,9 +127,14 @@ class CloudApi implements SwapyApi {
 
   async getMyItems(): Promise<Item[]> {
     await this.ensureInit()
+    const me = this.getCachedUser()
+    if (!me) return []
+    // 按 ownerId 查，和 getCards / swipe 保持一致。
+    // 不用 _openid：那是云数据库的保留字段，由系统维护，
+    // 云函数里手动写它、客户端再拿 '{openid}' 去查，行为在不同环境并不一致。
     const res = await db()
       .collection(COLLECTIONS.items)
-      .where({ _openid: '{openid}' })
+      .where({ ownerId: me._id })
       .orderBy('createdAt', 'desc')
       .get()
     return res.data as Item[]

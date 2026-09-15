@@ -279,6 +279,16 @@ class MockApi implements SwapyApi {
     const target = this.itemById(toItemId)
     if (!target) return { matched: false, quota: this.readQuota() }
 
+    // 幂等检查要放在扣额度**之前**。
+    // 客户端重试、或牌堆状态陈旧时会重复提交同一张卡，如果先扣额度，
+    // 用户会白丢一次额度却根本没看到新卡。
+    const existed = this.db.swipes.find(
+      (s) => s.fromUserId === me._id && s.toItemId === toItemId,
+    )
+    if (existed) {
+      return { matched: false, quota: this.readQuota() }
+    }
+
     // 左滑跳过和右滑想要都消耗额度：额度就是「每天能看多少张卡」
     const before = this.readQuota()
     // 额度用完就整条不记录：否则用户明天回来会发现物品被「偷偷」跳过了，
@@ -288,19 +298,14 @@ class MockApi implements SwapyApi {
     }
     this.db.quota.used += 1
 
-    const existed = this.db.swipes.find(
-      (s) => s.fromUserId === me._id && s.toItemId === toItemId,
-    )
-    if (!existed) {
-      this.db.swipes.push({
-        _id: uid('sw'),
-        fromUserId: me._id,
-        toItemId,
-        toUserId: target.ownerId,
-        direction,
-        createdAt: Date.now(),
-      })
-    }
+    this.db.swipes.push({
+      _id: uid('sw'),
+      fromUserId: me._id,
+      toItemId,
+      toUserId: target.ownerId,
+      direction,
+      createdAt: Date.now(),
+    })
 
     if (direction === 'left') {
       this.persist()

@@ -20,6 +20,8 @@ export default function Matches() {
       setLoading(true)
       try {
         setList(await api.getMatches())
+      } catch {
+        // 拉取失败保持现状，用户切回来会重试
       } finally {
         setLoading(false)
       }

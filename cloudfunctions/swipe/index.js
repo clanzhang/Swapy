@@ -47,6 +47,17 @@ exports.main = async (event = {}) => {
 
   const now = Date.now()
 
+  // 幂等检查要放在扣额度**之前**。
+  // 客户端重试、或牌堆状态陈旧时会重复提交同一张卡，如果先扣额度，
+  // 用户会白丢一次额度却根本没看到新卡。
+  const existed = await swipes
+    .where({ fromUserId: me._id, toItemId })
+    .limit(1)
+    .get()
+  if (existed.data.length) {
+    return { ok: true, data: { matched: false, quota: await readQuota(me, now) } }
+  }
+
   // 左滑跳过和右滑想要都消耗额度：额度就是「每天能看多少张卡」
   const gate = await consumeOne(me, now)
   if (!gate.allowed) {
@@ -55,23 +66,15 @@ exports.main = async (event = {}) => {
     return { ok: true, data: { matched: false, quota: buildQuota(gate.used, now) } }
   }
 
-  // 幂等：同一件物品重复滑只记一次，避免用户连点产生脏数据
-  const existed = await swipes
-    .where({ fromUserId: me._id, toItemId })
-    .limit(1)
-    .get()
-
-  if (!existed.data.length) {
-    await swipes.add({
-      data: {
-        fromUserId: me._id,
-        toItemId,
-        toUserId: target.ownerId,
-        direction,
-        createdAt: Date.now(),
-      },
-    })
-  }
+  await swipes.add({
+    data: {
+      fromUserId: me._id,
+      toItemId,
+      toUserId: target.ownerId,
+      direction,
+      createdAt: now,
+    },
+  })
 
   if (direction === 'left') {
     return { ok: true, data: { matched: false, quota: await readQuota(me, now) } }

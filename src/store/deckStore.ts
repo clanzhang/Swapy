@@ -1,8 +1,9 @@
 import { create } from 'zustand'
+import Taro from '@tarojs/taro'
 
 import { CARD_PAGE_SIZE } from '@/constants'
 import { api } from '@/services'
-import type { CardItem, Category, MatchView, QuotaState, SwipeDirection } from '@/types'
+import type { CardItem, Category, MatchView, QuotaState, SwipeDirection, SwipeResult } from '@/types'
 
 /** 剩余不足这个数就提前拉下一批，让「滑到底」这件事用户感知不到 */
 const PREFETCH_THRESHOLD = 3
@@ -16,8 +17,14 @@ interface DeckState {
   categories: Category[]
   /** 非空时首页弹出匹配成功动画 */
   matchResult: MatchView | null
-  /** 每日「想要」配额，由服务端下发 */
+  /** 每日刷卡额度，由服务端下发 */
   quota: QuotaState | null
+  /**
+   * 请求代。每次重置（切品类 / 重新加载）自增。
+   * 分页响应回来时如果代已变，说明这份结果已经过期，必须丢掉 ——
+   * 否则会把上一个筛选条件的卡片追加进新牌堆。
+   */
+  epoch: number
 
   init(): Promise<void>
   loadMore(): Promise<void>
@@ -35,17 +42,25 @@ export const useDeckStore = create<DeckState>((set, get) => ({
   categories: [],
   matchResult: null,
   quota: null,
+  epoch: 0,
 
   async init() {
-    set({ cards: [], cursor: null, hasMore: true, loading: false })
+    set({
+      cards: [],
+      cursor: null,
+      hasMore: true,
+      loading: false,
+      epoch: get().epoch + 1,
+    })
     await get().loadMore()
   },
 
   async loadMore() {
-    const { loading, hasMore, cursor, categories } = get()
+    const { loading, hasMore, cursor, categories, epoch } = get()
     if (loading || !hasMore) return
     // 额度用完就别再拉卡了，服务端也不会给
     if (get().quota && get().quota!.remaining <= 0) return
+
     set({ loading: true })
     try {
       const page = await api.getCards({
@@ -53,6 +68,10 @@ export const useDeckStore = create<DeckState>((set, get) => ({
         limit: CARD_PAGE_SIZE,
         categories,
       })
+
+      // 期间用户切了品类或重新加载过，这份响应已经过期
+      if (get().epoch !== epoch) return
+
       set({
         cards: [...get().cards, ...page.list],
         cursor: page.nextCursor,
@@ -60,8 +79,11 @@ export const useDeckStore = create<DeckState>((set, get) => ({
         hasMore: page.nextCursor !== null && (page.quota?.remaining ?? 1) > 0,
         quota: page.quota ?? get().quota,
       })
+    } catch {
+      // 拉取失败保持现状，下次滑动会再试
     } finally {
-      set({ loading: false })
+      // 只清理自己那一代的 loading；过期请求不能去动新一代的状态
+      if (get().epoch === epoch) set({ loading: false })
     }
   },
 
@@ -81,7 +103,18 @@ export const useDeckStore = create<DeckState>((set, get) => ({
       void get().loadMore()
     }
 
-    const res = await api.swipe(card._id, direction)
+    // 卡片先推掉了（动画已经播完），但滑动还没落库。
+    // 这一步失败必须把卡片放回去 —— 否则用户以为滑过了，
+    // 而服务端根本没记录，那张卡会「莫名其妙又出现」，更糟。
+    let res: SwipeResult
+    try {
+      res = await api.swipe(card._id, direction)
+    } catch {
+      set({ cards: [card, ...get().cards] })
+      void Taro.showToast({ title: '网络不太好，再试一次', icon: 'none' })
+      return
+    }
+
     set({ quota: res.quota })
     if (res.matched && res.match) {
       set({ matchResult: res.match })

@@ -37,8 +37,13 @@ export default function Index() {
   const topRef = useRef<SwipeCardHandle>(null)
   const [detailCard, setDetailCard] = useState<CardItem | null>(null)
   const [cardWidth] = useState(() => {
-    // getSystemInfoSync 已废弃（会在控制台报警告），用 getWindowInfo
-    const info = Taro.getWindowInfo()
+    // getWindowInfo 是基础库 2.20.1 才有的；老客户端要回退，
+    // 否则会直接抛 not a function
+    const { getWindowInfo } = Taro as unknown as {
+      getWindowInfo?: () => { windowWidth?: number }
+    }
+    const info =
+      typeof getWindowInfo === 'function' ? getWindowInfo() : Taro.getSystemInfoSync()
     return (info.windowWidth || 375) - PAGE_PADDING * 2
   })
 

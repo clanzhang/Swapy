@@ -38,9 +38,13 @@ export default function Profile() {
   const [saving, setSaving] = useState(false)
 
   const load = async () => {
-    const [mine, likes] = await Promise.all([api.getMyItems(), api.getWantedItems()])
-    setItems(mine)
-    setWanted(likes)
+    try {
+      const [mine, likes] = await Promise.all([api.getMyItems(), api.getWantedItems()])
+      setItems(mine)
+      setWanted(likes)
+    } catch {
+      // 拉取失败保持现状，用户切回来会重试；不要弹错误打扰
+    }
   }
 
   useDidShow(() => {

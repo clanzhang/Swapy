@@ -71,14 +71,21 @@ export default function Chat() {
   }
 
   const sendImage = async () => {
+    let path: string | undefined
     try {
       const res = await Taro.chooseImage({ count: 1, sizeType: ['compressed'] })
-      const path = res.tempFilePaths[0]
-      if (!path) return
+      path = res.tempFilePaths[0]
+    } catch {
+      return // 用户取消选择
+    }
+    if (!path) return
+
+    // 上传/发送失败要和「取消选择」区分开，否则用户以为发出去了
+    try {
       const url = await api.uploadImage(path)
       append(await api.sendMessage(matchId, 'image', url))
     } catch {
-      // 取消选择
+      void Taro.showToast({ title: '图片发送失败', icon: 'none' })
     }
   }
 

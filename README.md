@@ -37,7 +37,8 @@ pnpm build:weapp    # 构建到 dist/
 | `pnpm gen:tab-icons` | 生成 TabBar 的 PNG 图标（构建前自动跑） |
 | `pnpm typecheck` | TypeScript 检查 |
 | `pnpm verify` | 下面五项一起跑 |
-| `pnpm verify:matching` | 匹配算法验证（12 项断言） |
+| `pnpm verify:matching` | 匹配算法验证（14 项断言，含分页不漏卡） |
+| `pnpm verify:store` | deckStore 状态机验证（5 项断言，含并发与失败恢复） |
 | `pnpm verify:gesture` | 滑动手势验证（12 项断言 + 参数表） |
 | `pnpm verify:quota` | 每日配额验证（10 项断言） |
 | `pnpm verify:moderation` | 发布内容校验（7 项断言，重点是「不该拦」的样例） |
