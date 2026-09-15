@@ -184,11 +184,18 @@
   position: absolute;
   bottom: 6px;
   left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 3px;
   color: $text-weak;
   font-size: 11px;
   transform: translateX(-50%);
   animation: swipe-hint 1.8s ease-in-out infinite;
   pointer-events: none;
+}
+
+.swipe-card__hint-text {
+  font-size: 11px;
 }
 
 @keyframes swipe-hint {

@@ -2,13 +2,14 @@ import { Text, View } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { useEffect, useRef, useState } from 'react'
 
+import { Close, FaceMild, Heart } from '@/components/Icon'
 import CardStack from '@/components/CardStack'
 import CategoryFilter from '@/components/CategoryFilter'
 import ItemDetailSheet from '@/components/ItemDetailSheet'
 import MatchModal from '@/components/MatchModal'
 import { QuotaBadge, QuotaLimit } from '@/components/Quota'
 import type { SwipeCardHandle } from '@/components/SwipeCard'
-import { MAX_DISTANCE_KM } from '@/constants'
+import { MAX_DISTANCE_KM, THEME } from '@/constants'
 import { useDeckStore } from '@/store/deckStore'
 import { useUserStore } from '@/store/userStore'
 import type { CardItem, SwipeDirection } from '@/types'
@@ -85,8 +86,8 @@ export default function Index() {
           />
         ) : isEmpty ? (
           <View className='empty'>
-            <Text className='empty-emoji'>{hasMore ? '📭' : '🎉'}</Text>
-            <Text className='empty-title'>
+            <FaceMild size={32} color='#C8C8CE' />
+            <Text className='empty-title empty-title--spaced'>
               {hasMore ? '这一批滑完啦' : '附近的物品都看过了'}
             </Text>
             <Text className='empty-desc'>
@@ -114,10 +115,10 @@ export default function Index() {
       ) : (
         <View className='deck-actions'>
           <View className='deck-btn deck-btn--nope' onClick={() => handleTrigger('left')}>
-            <Text className='deck-btn__icon'>✕</Text>
+            <Close size={24} color='#999999' />
           </View>
           <View className='deck-btn deck-btn--like' onClick={() => handleTrigger('right')}>
-            <Text className='deck-btn__icon'>❤</Text>
+            <Heart size={24} color={THEME.primary} />
           </View>
         </View>
       )}

@@ -2,6 +2,7 @@ import { ScrollView, Text, View } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { useState } from 'react'
 
+import { Heart } from '@/components/Icon'
 import ItemImage from '@/components/ItemImage'
 import { CATEGORY_MAP } from '@/constants'
 import { api } from '@/services'
@@ -33,8 +34,8 @@ export default function Matches() {
     return (
       <View className='page'>
         <View className='empty'>
-          <Text className='empty-emoji'>💫</Text>
-          <Text className='empty-title'>还没有匹配</Text>
+          <Heart size={32} color='#C8C8CE' />
+          <Text className='empty-title empty-title--spaced'>还没有匹配</Text>
           <Text className='empty-desc'>
             去首页滑一滑，当你和对方互相「想要」时，就会出现在这里
           </Text>

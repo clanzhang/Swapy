@@ -1,5 +1,7 @@
 import { ScrollView, Text, View } from '@tarojs/components'
 
+import CategoryIcon from '@/components/CategoryIcon'
+import { THEME } from '@/constants'
 import { CATEGORIES } from '@/constants'
 import type { Category } from '@/types'
 
@@ -31,9 +33,12 @@ export default function CategoryFilter({ value, onChange }: Props) {
             className={`cat-chip ${value.includes(c.key) ? 'cat-chip--on' : ''}`}
             onClick={() => toggle(c.key)}
           >
-            <Text>
-              {c.emoji} {c.label}
-            </Text>
+            <CategoryIcon
+              category={c.key}
+              size={13}
+              color={value.includes(c.key) ? '#FFFFFF' : THEME.textSub}
+            />
+            <Text className='cat-chip__label'>{c.label}</Text>
           </View>
         ))}
       </View>

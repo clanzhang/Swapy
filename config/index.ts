@@ -44,7 +44,15 @@ export default defineConfig(async (merge, { command, mode }) => {
       projectDirectory: root,
     },
     copy: {
-      patterns: [],
+      patterns: [
+        // 原生 tabBar 只能用本地图片，且 Taro 不会处理 app.config 里
+        // iconPath 指向的文件，所以手动把 assets/ 拷进产物。
+        // 图标由 pnpm gen:tab-icons 生成，产物已入库。
+        //
+        // 注意 `to` 是相对**项目根目录**解析的（见 WebpackPlugin.getCopyWebpackPlugin
+        // 里的 path.resolve(appPath, to)），不是相对 outputRoot，所以要写 dist/。
+        { from: 'assets/', to: 'dist/assets/' },
+      ],
       options: {},
     },
     framework: 'react',

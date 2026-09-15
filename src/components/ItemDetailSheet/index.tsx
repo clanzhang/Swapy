@@ -1,5 +1,7 @@
 import { ScrollView, Text, View } from '@tarojs/components'
 
+import CategoryIcon from '../CategoryIcon'
+import { THEME } from '@/constants'
 import { CATEGORY_MAP, CONDITION_MAP, PRICE_RANGE_MAP } from '@/constants'
 import type { CardItem, SwipeDirection } from '@/types'
 import { fromNow } from '@/utils'
@@ -45,9 +47,8 @@ export default function ItemDetailSheet({ card, onClose, onDecide }: Props) {
 
           <View className='sheet__tags'>
             <View className='tag'>
-              <Text>
-                {category?.emoji} {category?.label}
-              </Text>
+              <CategoryIcon category={card.category} size={12} color={THEME.primary} />
+              <Text className='tag__text'>{category?.label}</Text>
             </View>
             <View className='tag tag-plain'>
               <Text>{condition?.label}</Text>

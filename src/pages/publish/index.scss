@@ -85,8 +85,6 @@
   height: 22px;
   border-bottom-left-radius: 10px;
   background: rgba(20, 20, 26, 0.6);
-  color: #fff;
-  font-size: 12px;
 }
 
 .uploader__cover {
@@ -109,12 +107,6 @@
   background: #fbfbfd;
 }
 
-.uploader__plus {
-  color: $brand;
-  font-size: 24px;
-  line-height: 1;
-}
-
 .uploader__tip {
   margin-top: 4px;
   color: $text-weak;
@@ -132,6 +124,7 @@
 .chip {
   display: flex;
   align-items: center;
+  gap: 4px;
   height: 32px;
   padding: 0 14px;
   border: 1px solid $border;
@@ -143,6 +136,10 @@
     background 160ms ease,
     color 160ms ease,
     border-color 160ms ease;
+}
+
+.chip__text {
+  font-size: 13px;
 }
 
 .chip--on {

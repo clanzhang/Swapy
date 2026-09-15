@@ -3,8 +3,10 @@ import { ScrollView, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { type ReactNode, useState } from 'react'
 
+import { Close, Plus } from '@/components/Icon'
+import CategoryIcon from '@/components/CategoryIcon'
 import ItemImage from '@/components/ItemImage'
-import { CATEGORIES, CONDITIONS, MAX_ITEM_IMAGES, PRICE_RANGES } from '@/constants'
+import { CATEGORIES, CONDITIONS, MAX_ITEM_IMAGES, PRICE_RANGES, THEME } from '@/constants'
 import { api } from '@/services'
 import type { Category, Condition, PriceRange } from '@/types'
 
@@ -23,10 +25,12 @@ function ChipGroup<T extends string>({
   options,
   value,
   onChange,
+  withIcon = false,
 }: {
   options: ChipOption<T>[]
   value: T | null
   onChange: (next: T) => void
+  withIcon?: boolean
 }) {
   return (
     <View className='chip-group'>
@@ -36,7 +40,14 @@ function ChipGroup<T extends string>({
           className={`chip ${value === option.key ? 'chip--on' : ''}`}
           onClick={() => onChange(option.key)}
         >
-          <Text>{option.label}</Text>
+          {withIcon && (
+            <CategoryIcon
+              category={option.key as unknown as Category}
+              size={13}
+              color={value === option.key ? THEME.primary : THEME.textSub}
+            />
+          )}
+          <Text className='chip__text'>{option.label}</Text>
         </View>
       ))}
     </View>
@@ -142,7 +153,7 @@ export default function Publish() {
                   className='uploader__remove'
                   onClick={() => setImages((prev) => prev.filter((_, idx) => idx !== i))}
                 >
-                  <Text>✕</Text>
+                  <Close size={12} color='#FFFFFF' />
                 </View>
                 {i === 0 && (
                   <View className='uploader__cover'>
@@ -153,7 +164,7 @@ export default function Publish() {
             ))}
             {images.length < MAX_ITEM_IMAGES && (
               <View className='uploader__cell uploader__cell--add' onClick={() => void chooseImages()}>
-                <Text className='uploader__plus'>＋</Text>
+                <Plus size={22} color={THEME.primary} />
                 <Text className='uploader__tip'>拍照 / 相册</Text>
               </View>
             )}
@@ -171,7 +182,7 @@ export default function Publish() {
         </Field>
 
         <Field label='品类'>
-          <ChipGroup<Category> options={CATEGORIES} value={category} onChange={setCategory} />
+          <ChipGroup<Category> options={CATEGORIES} value={category} onChange={setCategory} withIcon />
         </Field>
 
         <Field label='成色'>

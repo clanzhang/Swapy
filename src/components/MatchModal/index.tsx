@@ -1,7 +1,8 @@
 import { Text, View } from '@tarojs/components'
 import { useMemo } from 'react'
 
-import { CATEGORY_MAP } from '@/constants'
+import { HeartFill } from '@/components/Icon'
+import { CATEGORY_MAP, THEME } from '@/constants'
 import type { MatchView } from '@/types'
 
 import ItemImage from '../ItemImage'
@@ -77,7 +78,7 @@ export default function MatchModal({ match, onClose, onChat }: Props) {
           </View>
 
           <View className='match-modal__heart'>
-            <Text>❤️</Text>
+            <HeartFill size={26} color={THEME.primary} />
           </View>
 
           <View className='match-modal__slot'>

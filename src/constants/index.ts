@@ -2,9 +2,11 @@ import type { Category, Condition, PriceRange } from '@/types'
 
 export const THEME = {
   primary: '#FF6B35',
+  primaryDeep: '#E2551F',
   primarySoft: '#FFF3E0',
   text: '#1F1F1F',
   textSub: '#8A8A8E',
+  textWeak: '#B8B8BD',
   border: '#F0F0F0',
   bg: '#F7F7F9',
   success: '#2FBF71',

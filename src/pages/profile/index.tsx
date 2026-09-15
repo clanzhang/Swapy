@@ -3,8 +3,10 @@ import { ScrollView, Text, View } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { useEffect, useState } from 'react'
 
+import CategoryIcon from '@/components/CategoryIcon'
+import { Heart, List, Setting, User } from '@/components/Icon'
 import ItemImage from '@/components/ItemImage'
-import { CATEGORY_MAP, CONDITION_MAP, PRICE_RANGE_MAP } from '@/constants'
+import { CATEGORY_MAP, CONDITION_MAP, PRICE_RANGE_MAP, THEME } from '@/constants'
 import { api } from '@/services'
 import { useUserStore } from '@/store/userStore'
 import type { CardItem, Item, ItemStatus } from '@/types'
@@ -80,7 +82,7 @@ export default function Profile() {
         <View className='profile__card'>
           <View className='profile__head'>
             <View className='profile__avatar'>
-              <Text>{user?.nickname.slice(0, 1) || '换'}</Text>
+              <User size={26} color='#FFFFFF' />
             </View>
             <View className='profile__who'>
               <Text className='profile__name'>{user?.nickname || '未登录'}</Text>
@@ -89,7 +91,8 @@ export default function Profile() {
               </Text>
             </View>
             <View className='profile__edit' onClick={() => setEditing((v) => !v)}>
-              <Text>{editing ? '收起' : '编辑资料'}</Text>
+              <Setting size={13} color='#FFFFFF' />
+              <Text className='profile__edit-text'>{editing ? '收起' : '编辑资料'}</Text>
             </View>
           </View>
 
@@ -135,13 +138,15 @@ export default function Profile() {
             className={`profile__tab ${tab === 'items' ? 'profile__tab--on' : ''}`}
             onClick={() => setTab('items')}
           >
-            <Text>我的发布 {items.length}</Text>
+            <List size={14} color={tab === 'items' ? THEME.primaryDeep : THEME.textSub} />
+            <Text className='profile__tab-text'>我的发布 {items.length}</Text>
           </View>
           <View
             className={`profile__tab ${tab === 'wanted' ? 'profile__tab--on' : ''}`}
             onClick={() => setTab('wanted')}
           >
-            <Text>我的想要 {wanted.length}</Text>
+            <Heart size={14} color={tab === 'wanted' ? THEME.primaryDeep : THEME.textSub} />
+            <Text className='profile__tab-text'>我的想要 {wanted.length}</Text>
           </View>
         </View>
 
@@ -157,6 +162,10 @@ export default function Profile() {
                   <View className='row-card__main'>
                     <Text className='row-card__title ellipsis'>{item.title}</Text>
                     <View className='row-card__tags'>
+                      <View className='tag'>
+                        <CategoryIcon category={item.category} size={11} color={THEME.primary} />
+                        <Text className='tag__text'>{category?.label}</Text>
+                      </View>
                       <View className='tag tag-plain'>
                         <Text>{CONDITION_MAP[item.condition]?.label}</Text>
                       </View>
@@ -196,9 +205,8 @@ export default function Profile() {
                   <Text className='row-card__title ellipsis'>{card.title}</Text>
                   <View className='row-card__tags'>
                     <View className='tag'>
-                      <Text>
-                        {category?.emoji} {category?.label}
-                      </Text>
+                      <CategoryIcon category={card.category} size={11} color={THEME.primary} />
+                      <Text className='tag__text'>{category?.label}</Text>
                     </View>
                     <View className='tag tag-plain'>
                       <Text>{formatDistance(card.distanceKm)}</Text>

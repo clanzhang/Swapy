@@ -12,6 +12,7 @@
 | --- | --- |
 | 前端 | Taro 3.6 + React 18 + TypeScript |
 | UI | NutUI React Taro 2.7（按需引入） |
+| 图标 | @nutui/icons-react-taro（内联 SVG，不依赖 CDN 字体） |
 | 滑动交互 | touch 手势 + CSS transform |
 | 状态管理 | Zustand |
 | 后端 | 微信云开发（云函数 + 云数据库 + 云存储） |
@@ -33,11 +34,13 @@ pnpm build:weapp    # 构建到 dist/
 | 命令 | 说明 |
 | --- | --- |
 | `pnpm dev:weapp` / `pnpm build:weapp` | 开发（watch） / 构建 |
+| `pnpm gen:tab-icons` | 生成 TabBar 的 PNG 图标（构建前自动跑） |
 | `pnpm typecheck` | TypeScript 检查 |
-| `pnpm verify` | 下面四项一起跑 |
+| `pnpm verify` | 下面五项一起跑 |
 | `pnpm verify:matching` | 匹配算法验证（12 项断言） |
 | `pnpm verify:gesture` | 滑动手势验证（12 项断言 + 参数表） |
-| `pnpm verify:quota` | 每日配额验证（10 项断言，含跨天重置） |
+| `pnpm verify:quota` | 每日配额验证（10 项断言） |
+| `pnpm verify:icons` | 图标验证（渲染标签 / 样式序列化 / PNG 透明度和颜色） |
 | `pnpm verify:dist` | 产物体检 |
 
 ## 切换到真实云开发
@@ -60,6 +63,8 @@ src/
 │   └── index.ts         #   唯一的实现选择点
 ├── store/               # Zustand：userStore / deckStore
 ├── components/
+│   ├── Icon/            #   图标出口（统一标签映射 + 按需引入）
+│   ├── CategoryIcon/    #   品类 → 图标
 │   ├── SwipeCard/       #   可拖动卡片
 │   │   ├── gesture.ts   #     手势判定纯函数（阈值、甩动、旋转角度）
 │   │   └── index.tsx    #     touch 事件 → transform 映射
@@ -80,7 +85,8 @@ src/
 └── styles/              # 设计变量 + NutUI 按需样式
 
 cloudfunctions/          # 7 个云函数
-scripts/                 # 行为验证脚本
+scripts/                 # 行为验证脚本 + TabBar 图标生成
+assets/tab/              # TabBar 的 PNG（由 pnpm gen:tab-icons 生成，产物已入库）
 ```
 
 ## 约定
@@ -97,6 +103,11 @@ scripts/                 # 行为验证脚本
   每日上限和刷新整点是常量，改的时候三处要对齐。**判定只在服务端做**：
   客户端只拿 `{ limit, used, remaining, resetAt }` 显示，不参与计算。
 - **图片切图用点击左右区域，不用横滑** —— 横滑手势留给「跳过 / 想要」。
+- **图标一律从 `@/components/Icon` 引入**，不要从 `@nutui/icons-react-taro`
+  根导入。包的 sideEffects 让 barrel 无法 tree-shake，根导入会把 232 个图标
+  全打进包；而且那个模块还会顺带引 189KB 的 iconfont 样式。
+- **TabBar 图标是 PNG，页面内图标是组件**，两套资源不能共用：
+  原生 tabBar 只认本地图片。改图后跑 `pnpm gen:tab-icons` 重新生成。
 - **新增 NutUI 组件要在 `src/styles/nutui.ts` 补一行样式引入**，否则组件没有样式。
   全量引入会让 wxss 从 24KB 涨到 259KB。
 - **新增 `process.env` 变量要在 `config/index.ts` 的 `defineConstants` 里声明**，

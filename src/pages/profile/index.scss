@@ -63,11 +63,18 @@
 }
 
 .profile__edit {
+  display: flex;
   flex: none;
+  align-items: center;
+  gap: 4px;
   padding: 5px 12px;
   border: 1px solid rgba(255, 255, 255, 0.55);
   border-radius: 14px;
   color: #fff;
+  font-size: 11px;
+}
+
+.profile__edit-text {
   font-size: 11px;
 }
 
@@ -125,12 +132,19 @@
 }
 
 .profile__tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   padding: 7px 14px;
   border-radius: $radius-chip;
   background: $card;
   color: $text-sub;
   font-size: 13px;
   transition: all 160ms ease;
+}
+
+.profile__tab-text {
+  font-size: 13px;
 }
 
 .profile__tab--on {

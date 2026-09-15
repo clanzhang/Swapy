@@ -400,6 +400,53 @@ EventEmitter。两者签名一致，聊天页不需要区分。
 
 需要「无头像时显示昵称首字」的兜底。自绘 6 行样式比适配组件行为更可控。
 
+### 8.7 图标：两套资源，三个坑
+
+#### 页面内图标和 TabBar 图标不能共用
+
+原生 tabBar 只认本地图片，不支持图标组件，也不支持 SVG。所以：
+
+- **页面内**：用 `@nutui/icons-react-taro` 的组件（矢量、可换色、可调尺寸）
+- **TabBar**：8 张 81×81 的 PNG，由 `scripts/generate-tab-icons.cjs` 生成
+
+生成脚本从 NutUI 图标模块里把内联的 base64 SVG 解出来、换色、用 resvg
+栅格化。**不用 macOS 自带的 qlmanage**：它能转 SVG，但输出带白色不透明底，
+放进 tabBar 就是一个白方块 —— 在浅色 tabBar 上肉眼很难发现。
+
+#### 坑一：NutUI 图标默认渲染成 `<i>`
+
+`IconTemplate` 里 `globalConfig.tag` 默认是 `'i'`，而 Taro 的组件表里
+没有 `i`（见 `@tarojs/components/types`，只有 View/Text/Image 这些）。
+小程序会把它当未注册标签丢掉 —— **图标区域一片空白，且不报错**。
+
+修法：在 `src/components/Icon` 里把 `globalConfig.tag` 改成 `'view'`。
+必须集中在一处改，且要在任何图标渲染之前执行。
+
+#### 坑二：不能从包根导入图标
+
+包的 `sideEffects` 把 `dist/es/index.es.js` 标成了有副作用，barrel 无法
+tree-shake，从根导入会把 **232 个图标全部打进包**，并且顺带引入
+189KB 的 iconfont 样式（`style_iconfont.css`）。
+
+所以 `src/components/Icon` 按单个路径引入，只导出用到的那些。
+实测产物里只有 14 个业务图标（另外 2 个 Loading / MaskClose 是 NutUI
+组件自身的依赖）。
+
+#### 坑三：颜色靠 CSS mask，而属性名是驼峰带横线的
+
+图标在 `useSvg` 模式下（默认）是「CSS mask + 内联 SVG」实现的，
+颜色由 `background-color` 提供。NutUI 传进来的样式键是 `-webkitMask`，
+如果 Taro 原样输出，小程序拿到的是非法属性名 —— 图标会退化成纯色方块。
+
+实际 Taro 会走 `toDashed('-webkitMask') === '-webkit-mask'`，是合法的。
+但这层依赖很隐蔽，所以 `pnpm verify:icons` 里直接复刻了 Taro 的序列化
+逻辑跑一遍断言。
+
+#### 图标语义的替代
+
+NutUI 图标包里没有 `Music` / `Sad` / `Left`，分别用 `Microphone` /
+`FaceMild` / `ArrowLeft` 代替。规格里的 `PhotoGraph` 实际叫 `Photograph`。
+
 ### 8.7 小程序里不能出现裸的 `process.env`
 
 **症状**：小程序一启动就白屏，报 `ReferenceError: process is not defined`。
@@ -486,6 +533,19 @@ UI 层有 bug 肉眼可见，匹配层有 bug 要等用户投诉。
 `pnpm verify:dist` —— 构建后扫产物里有没有残留的 `process.*`。
 小程序运行时没有 `process`，任何漏网的引用都会在启动瞬间白屏，
 而**构建是成功的**。详见 8.7。
+
+### 图标验证
+
+`pnpm verify:icons` —— 4 项断言。这三件事肉眼都看不出来，但任何一件错了
+都表现为「图标区域一片空白 / 一个色块」，而且不报错：
+
+- 每个图标渲染出来的标签是 `<view>` 而不是 `<i>`，且 color / mask 真的带上了
+- 复刻 Taro 的样式序列化，确认 `-webkitMask` 会被转成合法的 `-webkit-mask`
+- `app.config.ts` 里写的 8 个 tabBar 图标路径在 `assets/` 里都存在
+- 8 张 PNG 都是 81×81、RGBA、透明像素占比在合理区间、主色正确、单张 < 40KB
+
+最后一项自己写了个最小 PNG 解码器（Node 内置 zlib 已够用）：不依赖图形库，
+也不需要人去看图。
 
 ### 每日配额的行为验证
 

@@ -2,8 +2,9 @@ import { Image, Input, ScrollView, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { useEffect, useState } from 'react'
 
+import { Photograph } from '@/components/Icon'
 import ItemImage from '@/components/ItemImage'
-import { CATEGORY_MAP } from '@/constants'
+import { CATEGORY_MAP, THEME } from '@/constants'
 import { api } from '@/services'
 import { useUserStore } from '@/store/userStore'
 import type { ChatMessage, MatchView } from '@/types'
@@ -153,7 +154,7 @@ export default function Chat() {
 
       <View className='chat__bar'>
         <View className='chat__icon-btn' onClick={() => void sendImage()}>
-          <Text>＋</Text>
+          <Photograph size={24} color={THEME.primary} />
         </View>
         <Input
           className='chat__input'

@@ -1,6 +1,6 @@
 {
   "name": "swapy",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "换换 — 闲置物品滑动匹配交换小程序",
   "templateInfo": {
@@ -18,8 +18,11 @@
     "verify:matching": "node scripts/run-verify.cjs verify-matching",
     "verify:dist": "node scripts/check-dist.cjs",
     "verify:gesture": "node scripts/run-verify.cjs verify-gesture",
-    "verify": "pnpm typecheck && pnpm verify:matching && pnpm verify:gesture && pnpm verify:quota && pnpm verify:dist",
-    "verify:quota": "node scripts/run-verify.cjs verify-quota"
+    "verify": "pnpm typecheck && pnpm verify:matching && pnpm verify:gesture && pnpm verify:quota && pnpm verify:icons && pnpm verify:dist",
+    "verify:quota": "node scripts/run-verify.cjs verify-quota",
+    "gen:tab-icons": "node scripts/generate-tab-icons.cjs",
+    "prebuild:weapp": "node scripts/generate-tab-icons.cjs",
+    "verify:icons": "node scripts/run-verify.cjs verify-icons"
   },
   "browserslist": [
     "last 3 versions",
@@ -28,6 +31,7 @@
   ],
   "dependencies": {
     "@babel/runtime": "^7.24.4",
+    "@nutui/icons-react-taro": "^1.0.5",
     "@nutui/nutui-react-taro": "^2.7.14",
     "@tarojs/components": "3.6.40",
     "@tarojs/helper": "3.6.40",
@@ -42,6 +46,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.24.4",
+    "@resvg/resvg-js": "^2.6.2",
     "@tarojs/cli": "3.6.40",
     "@tarojs/plugin-framework-react": "3.6.40",
     "@tarojs/taro-loader": "3.6.40",
@@ -49,9 +54,9 @@
     "@types/react": "^18.2.0",
     "@types/webpack-env": "^1.18.4",
     "babel-preset-taro": "3.6.40",
+    "esbuild": "^0.19.12",
     "sass": "^1.77.0",
     "typescript": "^5.4.5",
-    "webpack": "5.91.0",
-    "esbuild": "^0.19.12"
+    "webpack": "5.91.0"
   }
 }

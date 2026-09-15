@@ -13,6 +13,7 @@
 .cat-chip {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   height: 30px;
   padding: 0 13px;
   border: 1px solid $border;
@@ -24,6 +25,10 @@
     background 160ms ease,
     color 160ms ease,
     border-color 160ms ease;
+}
+
+.cat-chip__label {
+  font-size: 13px;
 }
 
 .cat-chip--on {

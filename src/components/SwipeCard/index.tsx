@@ -1,11 +1,13 @@
 import { Image, Text, View } from '@tarojs/components'
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 
-import { CATEGORY_MAP, CONDITION_MAP, PRICE_RANGE_MAP } from '@/constants'
+import { CATEGORY_MAP, CONDITION_MAP, PRICE_RANGE_MAP, THEME } from '@/constants'
 import type { CardItem, SwipeDirection } from '@/types'
 import { fromNow } from '@/utils'
 import { formatDistance } from '@/utils/geo'
 
+import CategoryIcon from '../CategoryIcon'
+import { ArrowUp } from '@/components/Icon'
 import ItemImagePager from '../ItemImagePager'
 
 import {
@@ -268,9 +270,8 @@ function CardBody({ card, showHint }: { card: CardItem; showHint: boolean }) {
 
         <View className='swipe-card__tags'>
           <View className='tag'>
-            <Text>
-              {category?.emoji} {category?.label}
-            </Text>
+            <CategoryIcon category={card.category} size={12} color={THEME.primary} />
+            <Text className='tag__text'>{category?.label}</Text>
           </View>
           <View className='tag tag-plain'>
             <Text>{condition?.label}</Text>
@@ -303,7 +304,9 @@ function CardBody({ card, showHint }: { card: CardItem; showHint: boolean }) {
 
       {showHint && (
         <View className='swipe-card__hint'>
-          <Text>↑ 上滑看详情</Text>
+          {/* 动作是「上滑」，所以箭头朝上。规格里写的 ArrowDown 与文案不一致。 */}
+          <ArrowUp size={12} color={THEME.textWeak} />
+          <Text className='swipe-card__hint-text'>上滑看详情</Text>
         </View>
       )}
     </View>
