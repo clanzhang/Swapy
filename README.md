@@ -32,7 +32,10 @@ pnpm build:weapp    # 构建到 dist/
 ```bash
 pnpm typecheck        # TypeScript 检查
 pnpm verify:matching  # 跑匹配算法的行为验证（12 项断言）
+pnpm verify:dist      # 产物体检（扫残留的 process 引用）
 ```
+
+> `build:weapp` 末尾已经串上了 `verify:dist`，构建产物有问题会直接报错。
 
 ## 切换到真实云开发
 
@@ -112,6 +115,24 @@ Taro 的类型定义里它只标注支持 alipay。所以拖拽结束只能挂�
 无法共存。这里改成 Tinder 的做法：**点击图片左右区域切图 + 顶部进度条**，
 横滑手势完整留给「跳过 / 想要」。
 
+### 小程序里绝对不能出现裸的 `process.env`
+
+小程序运行时没有 `process` 对象。**任何没被编译期替换掉的 `process.env.X`
+都会在启动瞬间抛 `process is not defined`**，而且构建是成功的、只在开发者工具
+或真机里才暴露。
+
+Taro 只自动替换它已知的 env key（`.env` 文件里出现过的），所以本项目用
+`config/index.ts` 的 `defineConstants` 显式声明：
+
+```ts
+defineConstants: {
+  'process.env.TARO_APP_CLOUD_ENV': JSON.stringify(process.env.TARO_APP_CLOUD_ENV || ''),
+}
+```
+
+这样没有 `.env` 文件也能被替换成字符串字面量，有了 `.env` 也照常覆盖。
+`scripts/check-dist.cjs` 会在每次构建后扫一遍产物，防止这类问题再次溜进去。
+
 ## 设计规范
 
 | 项 | 值 |
@@ -145,6 +166,20 @@ NutUI 全量样式 208KB，本产品只用了 Button / Input / TextArea，所以
 - 订阅消息需要用户先授权，一次性订阅只能推一条
 
 详见 [cloudfunctions/README.md](./cloudfunctions/README.md#九已知限制)。
+
+## 版本记录
+
+### 0.1.1
+
+- 修复：小程序启动即崩（`process is not defined`）。`TARO_APP_CLOUD_ENV`
+  没有被编译期替换，裸的 `process.env` 进了产物。改用 `defineConstants`
+  显式内联，并新增 `scripts/check-dist.cjs` 在每次构建后扫产物防回归。
+
+### 0.1.0
+
+- 首个版本：滑动匹配、发布、匹配列表、聊天、我的
+- 数据访问层双实现（Mock / 云开发），7 个云函数
+- 12 项匹配算法行为断言
 
 ## 产品设计文档
 

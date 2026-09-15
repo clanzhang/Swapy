@@ -319,6 +319,34 @@ weapp 不触发。所以判定逻辑挂在外层 `MovableArea` 的 `onTouchEnd`�
 
 需要「无头像时显示昵称首字」的兜底。自绘 6 行样式比适配组件行为更可控。
 
+### 8.7 小程序里不能出现裸的 `process.env`
+
+**症状**：小程序一启动就白屏，报 `ReferenceError: process is not defined`。
+
+**原因**：小程序运行时没有 `process` 对象。Taro 只会自动替换它已知的 env key
+（即 `.env` 文件里出现过的），没声明过的 `process.env.TARO_APP_X` 会原样
+留在产物里，变成一次真实的属性访问。
+
+**为什么 CI / 构建发现不了**：webpack 构建完全成功，只有真机或开发者工具
+才会执行到那一行。属于「构建绿了但产品是坏的」。
+
+**修法**：在 `config/index.ts` 的 `defineConstants` 里显式声明，让它在编译期
+就被替换成字符串字面量（`config/index.ts` 本身跑在 Node 里，`process` 是存在的）。
+
+**防回归**：`scripts/check-dist.cjs` 在每次构建后扫产物里有没有残留的
+`process.*`，有就 fail。这类「只在运行时暴露」的问题只能靠静态闸门挡住。
+
+### 8.8 验证分三层
+
+| 层 | 手段 | 挡住的错误 |
+| --- | --- | --- |
+| 类型 | `pnpm typecheck` | 接口不匹配、拼写错误 |
+| 行为 | `pnpm verify:matching` | 匹配规则写错（不会报错，只会让产品慢慢失效） |
+| 产物 | `pnpm verify:dist` | 构建成功但运行时必崩的模式 |
+
+这三层都跑得起来，是因为它们都不依赖微信运行时 —— 这也是引入数据访问层
+（Mock 实现可在 Node 里跑）的附带收益。
+
 ---
 
 ## 9. 测试策略

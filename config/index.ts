@@ -22,7 +22,19 @@ export default defineConfig(async (merge, { command, mode }) => {
     sourceRoot: 'src',
     outputRoot: 'dist',
     plugins: [],
-    defineConstants: {},
+    /**
+     * 编译期常量。
+     *
+     * 小程序运行时没有 `process` 对象，任何没被替换掉的 `process.env.X`
+     * 都会在启动瞬间抛 “process is not defined”。Taro 只会自动替换它
+     * 已知的 key（.env 里出现过的），所以这里显式声明一次，
+     * 保证即使没有 .env 文件也能被替换成字符串字面量。
+     */
+    defineConstants: {
+      'process.env.TARO_APP_CLOUD_ENV': JSON.stringify(
+        process.env.TARO_APP_CLOUD_ENV || '',
+      ),
+    },
     alias: {
       '@': path.resolve(root, 'src'),
     },
