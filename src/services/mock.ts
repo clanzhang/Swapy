@@ -1,23 +1,29 @@
 import Taro from '@tarojs/taro'
 
 import { DEFAULT_LOCATION } from '@/config'
-import { MAX_DISTANCE_KM, PRICE_RANGE_MAP } from '@/constants'
+import { PRICE_RANGE_MAP } from '@/constants'
 import { SEED_ITEMS, SEED_ME, SEED_SWIPES, SEED_USERS, SEED_VERSION } from '@/constants/seed'
 import type {
   CardItem,
-  CardQuery,
   ChatMessage,
+  GetCardsParams,
+  GetCardsResult,
+  GetChatHistoryParams,
+  GetChatHistoryResult,
+  GetMatchesResult,
   Item,
   ItemStatus,
+  LoginResult,
   Match,
-  MatchView,
-  MessageType,
-  Page,
+  MatchItem,
   ProfilePatch,
   PublishItemInput,
+  PublishItemResult,
   QuotaState,
+  SendMessageParams,
+  SendMessageResult,
   Swipe,
-  SwipeDirection,
+  SwipeParams,
   SwipeResult,
   User,
 } from '@/types'
@@ -31,14 +37,18 @@ import type { SwapyApi } from './adapter'
 const DB_KEY = 'swapy:mock-db:v1'
 const USER_KEY = 'swapy:mock-user:v1'
 
+/** 聊天记录每页条数，和 getChatHistory 的规格一致 */
+const CHAT_PAGE_SIZE = 50
+
 interface MockDb {
   users: User[]
   items: Item[]
   swipes: Swipe[]
   matches: Match[]
+  /** 独立的消息集合，不嵌在 matches 里 —— 方便分页 */
   messages: ChatMessage[]
   meId: string
-  /** 每日「想要」配额。dayKey 决定什么时候重置。 */
+  /** 每日刷卡额度。dayKey 决定什么时候重置。 */
   quota: { dayKey: string; used: number }
   /** 存档对应的种子版本，对不上就重新播种 */
   seedVersion: number
@@ -58,20 +68,20 @@ function seedDb(): MockDb {
 }
 
 /**
- * 内容不合规就抛错，把具体原因带在 message 里让页面直接展示。
+ * 内容不合规就返回失败原因。
  * 客户端能被绕过，所以真正的门在这里（云函数侧同样有一道）。
  */
-function assertPublishable(title: string, description: string) {
+function checkPublishable(title: string, description: string): string | null {
   const result = moderateItem({ title, description })
-  if (!result.ok) {
-    throw new Error(describeHits(result.hits))
-  }
+  return result.ok ? null : describeHits(result.hits)
 }
 
 /**
  * Mock 实现：全部数据放在内存，并持久化到 Storage。
- * 目的是让「发布 → 滑动 → 匹配 → 聊天」这条链路可以完全离线跑通，
- * 也让 UI 开发不被云环境阻塞。
+ *
+ * 它扮演的是「服务端」：筛选、匹配判定、额度、内容校验都在这里做，
+ * 和 cloudfunctions/* 的行为一一对应。所以页面在完全离线的状态下，
+ * 走的是和线上一样的判定路径。
  */
 class MockApi implements SwapyApi {
   private db: MockDb
@@ -89,13 +99,12 @@ class MockApi implements SwapyApi {
       const raw = Taro.getStorageSync(DB_KEY)
       if (raw) {
         const parsed = JSON.parse(raw) as MockDb
-        // 种子数据改过就别用旧存档了，否则老设备上永远是旧牌堆，
-        // 而且表现成「怎么点都不匹配」这类很难查的问题
+        // 种子数据改过就别用旧存档了，否则老设备上永远是旧牌堆
         if (parsed?.items?.length && parsed.seedVersion === SEED_VERSION) {
-          // 兼容旧版本的存档：补上后来才加的字段
           if (!parsed.quota) {
             parsed.quota = { dayKey: quotaDayKey(Date.now()), used: 0 }
           }
+          if (!parsed.messages) parsed.messages = []
           return parsed
         }
       }
@@ -108,13 +117,12 @@ class MockApi implements SwapyApi {
   }
 
   private persist(db: MockDb = this.db) {
-    // 写操作很频繁（每次滑动），做个 200ms 合并再落盘
     if (this.saveTimer) clearTimeout(this.saveTimer)
     this.saveTimer = setTimeout(() => {
       try {
         Taro.setStorageSync(DB_KEY, JSON.stringify(db))
       } catch {
-        // 超过 Storage 上限时静默降级为纯内存，不影响本次会话
+        // 超过 Storage 上限时静默降级为纯内存
       }
     }, 200)
   }
@@ -135,9 +143,11 @@ class MockApi implements SwapyApi {
     return this.db.items.find((i) => i._id === id)
   }
 
-  private distanceTo(user: User): number {
-    const from = this.me.location || DEFAULT_LOCATION
-    const to = user.location || DEFAULT_LOCATION
+  /** 有定位就算距离，没有就返回 undefined（前端回退显示城市） */
+  private distanceTo(user: User): number | undefined {
+    const from = this.me.location ?? DEFAULT_LOCATION
+    const to = user.location
+    if (!to) return undefined
     return haversine(from, to)
   }
 
@@ -146,12 +156,8 @@ class MockApi implements SwapyApi {
     return { ...item, owner, distanceKm: this.distanceTo(owner) }
   }
 
-  // ---------------------------------------------------------------- 每日配额
+  // ---------------------------------------------------------------- 每日额度
 
-  /**
-   * 读配额。跨过刷新点（每天 12:00）会自动归零。
-   * dayKey 用北京时间算，不依赖设备时区 —— 否则出国或者改系统时间就能白嫖。
-   */
   private readQuota(): QuotaState {
     const now = Date.now()
     const key = quotaDayKey(now)
@@ -168,18 +174,19 @@ class MockApi implements SwapyApi {
     }
   }
 
-  // -------------------------------------------------------------------- 用户
+  // -------------------------------------------------------------------- login
 
-  async init(): Promise<User> {
+  async login(): Promise<LoginResult> {
     const cached = this.getCachedUser()
+    const isNew = !cached
+
     if (cached) {
-      // 沿用缓存身份，但把最新的种子数据合并进来（方便反复调试）
       Object.assign(this.me, cached, { lastActiveAt: Date.now() })
     } else {
       this.me.lastActiveAt = Date.now()
     }
     this.persist()
-    return this.me
+    return { user: { ...this.me }, isNew }
   }
 
   getCachedUser(): User | null {
@@ -206,16 +213,15 @@ class MockApi implements SwapyApi {
 
   // ---------------------------------------------------------------- 匹配池
 
-  async getCards(query: CardQuery): Promise<Page<CardItem>> {
+  async getCards(params: GetCardsParams = {}): Promise<GetCardsResult> {
     const me = this.me
-    const offset = Number(query.cursor || 0) || 0
-    const limit = query.limit ?? 10
+    const page = Math.max(1, Number(params.page) || 1)
+    const pageSize = Math.max(1, Number(params.pageSize) || 20)
+    const offset = (page - 1) * pageSize
 
-    // 额度用完就不再发卡。这是唯一的下发口径，
-    // 页面不用自己拼「没卡了」和「额度没了」两种状态
     const quota = this.readQuota()
     if (quota.remaining <= 0) {
-      return { list: [], nextCursor: null, quota }
+      return { cards: [], hasMore: false, quota }
     }
 
     const swipedIds = new Set(
@@ -228,20 +234,18 @@ class MockApi implements SwapyApi {
       .map((i) => PRICE_RANGE_MAP[i.priceRange])
       .filter(Boolean)
 
-    // 候选集**不排除已滑过的**。
-    //
-    // 游标是「候选列表里的位置」。如果候选集因为滑过而变短、游标却按原步长
-    // 前进，每翻一页就会静默跳过一批卡片 —— 实测 42 张只能滑到 26 张。
-    // 所以排除已滑过必须放在切片**之后**做。
+    // 候选集**不排除已滑过的**。分页下标必须索引一个稳定的列表，
+    // 否则每翻一页都会静默跳过一批卡片（曾经 42 张只能滑到 26 张）。
     const candidates = this.db.items
       .filter((item) => {
         if (item.status !== 'active') return false
         if (item.ownerId === me._id) return false
-        if (query.categories?.length && !query.categories.includes(item.category)) return false
+        if (params.categories?.length && !params.categories.includes(item.category)) return false
 
         const owner = this.userById(item.ownerId)
         if (!owner) return false
-        if (this.distanceTo(owner) > MAX_DISTANCE_KM) return false
+        // 同城
+        if (owner.city !== me.city) return false
 
         // 估值区间有交集（我没有在架物品时不筛，避免新用户无卡可滑）
         if (myRanges.length) {
@@ -252,35 +256,32 @@ class MockApi implements SwapyApi {
         return true
       })
       .map((item) => this.toCard(item))
-      .sort((a, b) => a.distanceKm - b.distanceKm || b.createdAt - a.createdAt)
+      .sort((a, b) => b.createdAt - a.createdAt)
 
-    // 沿候选集往后扫，跳过已滑过的，凑够 limit 张（或扫到底）
-    const list: CardItem[] = []
+    // 沿候选集往后扫，跳过已滑过的，凑够 pageSize 张（或扫到底）
+    const cards: CardItem[] = []
     let scan = offset
-    while (list.length < limit && scan < candidates.length) {
-      const window = candidates.slice(scan, scan + (limit - list.length))
+    while (cards.length < pageSize && scan < candidates.length) {
+      const window = candidates.slice(scan, scan + (pageSize - cards.length))
       scan += window.length
       for (const card of window) {
-        if (!swipedIds.has(card._id)) list.push(card)
+        if (!swipedIds.has(card._id)) cards.push(card)
       }
     }
 
-    return {
-      list,
-      nextCursor: scan < candidates.length ? String(scan) : null,
-      quota,
-    }
+    return { cards, hasMore: scan < candidates.length, quota }
   }
 
   // -------------------------------------------------------------------- 滑动
 
-  async swipe(toItemId: string, direction: SwipeDirection): Promise<SwipeResult> {
+  async swipe(params: SwipeParams): Promise<SwipeResult> {
     const me = this.me
+    const { toItemId, direction } = params
     const target = this.itemById(toItemId)
     if (!target) return { matched: false, quota: this.readQuota() }
 
     // 幂等检查要放在扣额度**之前**。
-    // 客户端重试、或牌堆状态陈旧时会重复提交同一张卡，如果先扣额度，
+    // 客户端重试、或牌堆状态陈旧时会重复提交同一张卡，先扣额度的话
     // 用户会白丢一次额度却根本没看到新卡。
     const existed = this.db.swipes.find(
       (s) => s.fromUserId === me._id && s.toItemId === toItemId,
@@ -318,9 +319,7 @@ class MockApi implements SwapyApi {
     )
     const reciprocal = this.db.swipes.find(
       (s) =>
-        s.fromUserId === target.ownerId &&
-        myItemIds.has(s.toItemId) &&
-        s.direction === 'right',
+        s.fromUserId === target.ownerId && myItemIds.has(s.toItemId) && s.direction === 'right',
     )
 
     if (!reciprocal) {
@@ -335,11 +334,11 @@ class MockApi implements SwapyApi {
     )
 
     const match: Match =
-      already ??
-      {
+      already ?? {
         _id: uid('mt'),
         userA: me._id,
         userB: target.ownerId,
+        // itemA 是 userA 右滑的物品，itemB 是 userB 右滑的物品
         itemA: toItemId,
         itemB: reciprocal.toItemId,
         createdAt: Date.now(),
@@ -352,19 +351,23 @@ class MockApi implements SwapyApi {
     }
 
     this.persist()
-    return { matched: true, match: this.toMatchView(match)!, quota: this.readQuota() }
+    return {
+      matched: true,
+      matchId: match._id,
+      otherUser: this.userById(target.ownerId),
+      quota: this.readQuota(),
+    }
   }
 
   /** 匹配成功后塞一句对方打招呼的话，让聊天页不是空的 */
   private seedGreeting(match: Match) {
     const peerId = match.userA === this.db.meId ? match.userB : match.userA
-    const peer = this.userById(peerId)
-    if (!peer) return
-    const peerItem = this.itemById(peerId === match.userA ? match.itemA : match.itemB)
+    const peerItemId = peerId === match.userA ? match.itemA : match.itemB
+    const peerItem = this.itemById(peerItemId)
     this.db.messages.push({
       _id: uid('msg'),
       matchId: match._id,
-      fromUserId: peerId,
+      senderId: peerId,
       type: 'text',
       content: `哈喽，看到你的物品了～ 我这边是「${peerItem?.title ?? '闲置'}」，可以聊聊怎么换吗？`,
       createdAt: Date.now(),
@@ -373,15 +376,14 @@ class MockApi implements SwapyApi {
 
   // -------------------------------------------------------------------- 物品
 
-  async publishItem(input: PublishItemInput): Promise<Item> {
-    // 内容校验。客户端也会跑一遍做即时提示，但判定以服务端为准。
-    // Mock 就是「服务端」，和云函数行为一致。
-    assertPublishable(input.title, input.description)
+  async publishItem(input: PublishItemInput): Promise<PublishItemResult> {
+    const error = checkPublishable(input.title, input.description)
+    if (error) return { success: false, error }
 
     const item: Item = {
       _id: uid('it'),
       ownerId: this.me._id,
-      images: input.images,
+      images: input.imageFileIds,
       title: input.title,
       category: input.category,
       condition: input.condition,
@@ -392,7 +394,7 @@ class MockApi implements SwapyApi {
     }
     this.db.items.unshift(item)
     this.persist()
-    return item
+    return { success: true, itemId: item._id }
   }
 
   async getMyItems(): Promise<Item[]> {
@@ -421,69 +423,82 @@ class MockApi implements SwapyApi {
 
   // -------------------------------------------------------------------- 匹配
 
-  private toMatchView(match: Match): MatchView | null {
+  private toMatchItem(match: Match): MatchItem | null {
     const meId = this.me._id
     const isA = match.userA === meId
     const peerId = isA ? match.userB : match.userA
-    const peer = this.userById(peerId)
+    const otherUser = this.userById(peerId)
     const myItem = this.itemById(isA ? match.itemB : match.itemA)
-    const peerItem = this.itemById(isA ? match.itemA : match.itemB)
-    if (!peer || !myItem || !peerItem) return null
+    const otherItem = this.itemById(isA ? match.itemA : match.itemB)
+    if (!otherUser || !myItem || !otherItem) return null
 
     const msgs = this.db.messages
       .filter((m) => m.matchId === match._id)
       .sort((a, b) => a.createdAt - b.createdAt)
 
     return {
-      _id: match._id,
+      matchId: match._id,
       createdAt: match.createdAt,
-      peer,
+      otherUser,
       myItem,
-      peerItem,
+      otherItem,
       lastMessage: msgs[msgs.length - 1],
     }
   }
 
-  async getMatches(): Promise<MatchView[]> {
-    return this.db.matches
-      .map((m) => this.toMatchView(m))
-      .filter((m): m is MatchView => Boolean(m))
+  async getMatches(): Promise<GetMatchesResult> {
+    const matches = this.db.matches
+      .map((m) => this.toMatchItem(m))
+      .filter((m): m is MatchItem => Boolean(m))
       .sort((a, b) => b.createdAt - a.createdAt)
+    return { matches }
   }
 
-  async getMatch(matchId: string): Promise<MatchView | null> {
+  async getMatch(matchId: string): Promise<MatchItem | null> {
     const match = this.db.matches.find((m) => m._id === matchId)
-    return match ? this.toMatchView(match) : null
+    return match ? this.toMatchItem(match) : null
   }
 
   // -------------------------------------------------------------------- 聊天
 
-  async getChatHistory(matchId: string): Promise<ChatMessage[]> {
-    return this.db.messages
-      .filter((m) => m.matchId === matchId)
-      .sort((a, b) => a.createdAt - b.createdAt)
+  /**
+   * 取聊天记录：按时间倒序取一页，再翻转成正序返回。
+   * 页面拿到的是可以直接渲染的顺序，滚动加载更早的用 page+1。
+   */
+  async getChatHistory(params: GetChatHistoryParams): Promise<GetChatHistoryResult> {
+    const page = Math.max(1, Number(params.page) || 1)
+    const all = this.db.messages
+      .filter((m) => m.matchId === params.matchId)
+      .sort((a, b) => b.createdAt - a.createdAt)
+
+    const slice = all.slice((page - 1) * CHAT_PAGE_SIZE, page * CHAT_PAGE_SIZE)
+    return { success: true, messages: slice.reverse() }
   }
 
-  async sendMessage(
-    matchId: string,
-    type: MessageType,
-    content: string,
-  ): Promise<ChatMessage> {
-    const msg: ChatMessage = {
+  async sendMessage(params: SendMessageParams): Promise<SendMessageResult> {
+    const { matchId, content, type } = params
+    const me = this.me
+
+    const match = this.db.matches.find((m) => m._id === matchId)
+    if (!match || (match.userA !== me._id && match.userB !== me._id)) {
+      return { success: false }
+    }
+
+    const message: ChatMessage = {
       _id: uid('msg'),
       matchId,
-      fromUserId: this.me._id,
-      type,
+      senderId: me._id,
       content,
+      type,
       createdAt: Date.now(),
     }
-    this.db.messages.push(msg)
-    const match = this.db.matches.find((m) => m._id === matchId)
-    if (match) match.lastMessageAt = msg.createdAt
+    this.db.messages.push(message)
+    match.lastMessageAt = message.createdAt
     this.persist()
-    this.emit(msg)
+    this.emit(message)
     this.maybeAutoReply(matchId)
-    return msg
+
+    return { success: true, messageId: message._id }
   }
 
   private emit(msg: ChatMessage) {
@@ -497,18 +512,20 @@ class MockApi implements SwapyApi {
   private maybeAutoReply(matchId: string) {
     const match = this.db.matches.find((m) => m._id === matchId)
     if (!match) return
+
     const replied = this.db.messages.filter(
-      (m) => m.matchId === matchId && m.fromUserId !== this.db.meId,
+      (m) => m.matchId === matchId && m.senderId !== this.db.meId,
     ).length
     if (replied >= 2) return
 
     const peerId = match.userA === this.db.meId ? match.userB : match.userA
     const replies = ['可以的，你方便什么时候换？', '好呀，我在上海，周末都行～', '这个还在的，随时可以约']
+
     setTimeout(() => {
       const msg: ChatMessage = {
         _id: uid('msg'),
         matchId,
-        fromUserId: peerId,
+        senderId: peerId,
         type: 'text',
         content: replies[Math.min(replied, replies.length - 1)],
         createdAt: Date.now(),

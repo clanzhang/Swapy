@@ -3,14 +3,14 @@ import { useMemo } from 'react'
 
 import { HeartFill } from '@/components/Icon'
 import { CATEGORY_MAP, THEME } from '@/constants'
-import type { MatchView } from '@/types'
+import type { MatchItem } from '@/types'
 
 import ItemImage from '../ItemImage'
 
 import './index.scss'
 
 interface Props {
-  match: MatchView | null
+  match: MatchItem | null
   onClose: () => void
   onChat: (matchId: string) => void
 }
@@ -41,7 +41,7 @@ export default function MatchModal({ match, onClose, onChat }: Props) {
   if (!match) return null
 
   const myEmoji = CATEGORY_MAP[match.myItem.category]?.emoji ?? '📦'
-  const peerEmoji = CATEGORY_MAP[match.peerItem.category]?.emoji ?? '📦'
+  const peerEmoji = CATEGORY_MAP[match.otherItem.category]?.emoji ?? '📦'
 
   return (
     <View className='match-modal'>
@@ -83,16 +83,16 @@ export default function MatchModal({ match, onClose, onChat }: Props) {
 
           <View className='match-modal__slot'>
             <View className='match-modal__thumb'>
-              <ItemImage src={match.peerItem.images[0]} emoji={peerEmoji} />
+              <ItemImage src={match.otherItem.images[0]} emoji={peerEmoji} />
             </View>
             <Text className='match-modal__slot-label ellipsis'>
-              {match.peer.nickname} · {match.peerItem.title}
+              {match.otherUser.nickname} · {match.otherItem.title}
             </Text>
           </View>
         </View>
 
         <View className='match-modal__actions'>
-          <View className='match-modal__btn match-modal__btn--primary' onClick={() => onChat(match._id)}>
+          <View className='match-modal__btn match-modal__btn--primary' onClick={() => onChat(match.matchId)}>
             <Text>去聊天</Text>
           </View>
           <View className='match-modal__btn match-modal__btn--ghost' onClick={onClose}>

@@ -3,57 +3,57 @@ const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
-const _ = db.command
 
 const users = db.collection('users')
 const matches = db.collection('matches')
+const messages = db.collection('messages')
 
 /**
- * 发送聊天消息。
+ * sendMessage — 发送聊天消息。
  *
- * 消息直接 push 进 matches 文档的 messages 数组，客户端用
- * db.collection('matches').doc(id).watch() 就能拿到实时推送，
- * 一对一会话不需要额外的长连接服务。
+ * 入参：{ matchId, content, type }，type 为 text 或 image
+ * 出参：{ success, messageId? }
  *
- * 上限提醒：单个文档 16MB。按一条消息 ~200B 算，能存约 8 万条，
- * 一对一的闲置交换场景够用。真要做大，把 messages 拆成独立集合并
- * 只把最近一条冗余在 match 上。
+ * 消息写在**独立的 messages 集合**里，不嵌在 matches 文档里 ——
+ * 这样能按 matchId 分页查询，也能被客户端 watch 订阅，
+ * 而且不会撞上单文档 16MB 的上限。
  */
 exports.main = async (event = {}) => {
   const { OPENID } = cloud.getWXContext()
-  const { matchId, type, content } = event
+  const { matchId, content, type } = event
 
-  if (!matchId) return { ok: false, message: '缺少 matchId' }
-  if (type !== 'text' && type !== 'image') return { ok: false, message: '消息类型不合法' }
-  if (typeof content !== 'string' || !content) return { ok: false, message: '消息内容为空' }
+  if (!matchId) return { ok: true, data: { success: false, error: '缺少 matchId' } }
+  if (type !== 'text' && type !== 'image') {
+    return { ok: true, data: { success: false, error: '消息类型不合法' } }
+  }
+  if (typeof content !== 'string' || !content) {
+    return { ok: true, data: { success: false, error: '消息内容为空' } }
+  }
 
   const meRes = await users.where({ _openid: OPENID }).limit(1).get()
   const me = meRes.data[0]
-  if (!me) return { ok: false, message: '用户不存在，请先登录' }
+  if (!me) return { ok: true, data: { success: false, error: '用户不存在，请先登录' } }
 
   const matchRes = await matches.doc(matchId).get().catch(() => null)
   const match = matchRes && matchRes.data
-  if (!match) return { ok: false, message: '会话不存在' }
+  if (!match) return { ok: true, data: { success: false, error: '会话不存在' } }
+  // 只有会话双方能发言
   if (match.userA !== me._id && match.userB !== me._id) {
-    return { ok: false, message: '无权在该会话发言' }
+    return { ok: true, data: { success: false, error: '无权在该会话发言' } }
   }
 
   const now = Date.now()
-  const message = {
-    _id: `${now.toString(36)}${Math.random().toString(36).slice(2, 8)}`,
+  const doc = {
     matchId,
-    fromUserId: me._id,
-    type,
+    senderId: me._id,
     content: type === 'text' ? content.slice(0, 1000) : content,
+    type,
     createdAt: now,
   }
 
-  await matches.doc(matchId).update({
-    data: {
-      messages: _.push([message]),
-      lastMessageAt: now,
-    },
-  })
+  const res = await messages.add({ data: doc })
+  // matches 上留个时间戳，用于会话列表排序
+  await matches.doc(matchId).update({ data: { lastMessageAt: now } })
 
-  return { ok: true, data: message }
+  return { ok: true, data: { success: true, messageId: res._id } }
 }

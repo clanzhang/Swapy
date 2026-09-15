@@ -6,10 +6,12 @@ const db = cloud.database()
 const users = db.collection('users')
 
 /**
- * 微信登录：拿到 openid，创建或更新用户。
+ * login — 静默登录，用户无感知。
  *
- * 同时也承担「更新资料」的职责（传了 nickname / avatarUrl / city 就更新），
- * 这样客户端只需要维护一个用户写入入口。
+ * 入参：无（从微信上下文自动获取 openid）。
+ *       另外接受 nickname / avatarUrl / city / location，传了就顺带更新资料，
+ *       这样客户端只需要维护一个用户写入入口。
+ * 出参：{ user, isNew }
  */
 exports.main = async (event = {}) => {
   const { OPENID } = cloud.getWXContext()
@@ -33,12 +35,12 @@ exports.main = async (event = {}) => {
   if (existing.data.length) {
     const doc = existing.data[0]
     await users.doc(doc._id).update({ data: patch })
-    return { ok: true, data: { ...doc, ...patch } }
+    return { ok: true, data: { user: { ...doc, ...patch }, isNew: false } }
   }
 
   const profile = {
     _openid: OPENID,
-    nickname: `换友${OPENID.slice(-4)}`,
+    nickname: `换换用户${OPENID.slice(-4)}`,
     avatarUrl: '',
     city: '上海',
     location: null,
@@ -47,5 +49,6 @@ exports.main = async (event = {}) => {
     ...patch,
   }
   const res = await users.add({ data: profile })
-  return { ok: true, data: { _id: res._id, ...profile } }
+
+  return { ok: true, data: { user: { _id: res._id, ...profile }, isNew: true } }
 }

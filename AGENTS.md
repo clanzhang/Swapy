@@ -32,8 +32,10 @@
 
 那几条都是**不遵守就会出问题、但不会报错**的。其中最容易踩的：
 
-- 数据只走 `src/services`，页面不直接调云函数或 Mock
-- 匹配判定有两份实现（`mock.ts` 和 `cloudfunctions/swipe`），改动必须同步
+- 数据只走 `src/services`，页面按域用 userService/itemService/swipeService/
+  matchService/chatService，不直接调云函数或 Mock
+- 服务端逻辑都有两份实现（`src/services/mock.ts` 和 `cloudfunctions/*`），
+  匹配判定、同城筛选、分页、额度、内容校验，改动必须同步两边
 - 改 `src/constants/seed.ts` 要同时把 `SEED_VERSION` +1，否则老设备一直用旧存档
 - 图标从 `@/components/Icon` 引入，不要从 `@nutui/icons-react-taro` 包根导入
 - 新增 NutUI 组件要在 `src/styles/nutui.ts` 补一行样式引入

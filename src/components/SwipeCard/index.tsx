@@ -1,7 +1,7 @@
 import { Image, Text, View } from '@tarojs/components'
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 
-import { CATEGORY_MAP, CONDITION_MAP, PRICE_RANGE_MAP, THEME } from '@/constants'
+import { CATEGORY_MAP, PRICE_RANGE_MAP, THEME } from '@/constants'
 import type { CardItem, SwipeDirection } from '@/types'
 import { fromNow } from '@/utils'
 import { formatDistance } from '@/utils/geo'
@@ -256,7 +256,6 @@ export default forwardRef<SwipeCardHandle, Props>(function SwipeCard(
 
 function CardBody({ card, showHint }: { card: CardItem; showHint: boolean }) {
   const category = CATEGORY_MAP[card.category]
-  const condition = CONDITION_MAP[card.condition]
   const range = PRICE_RANGE_MAP[card.priceRange]
 
   return (
@@ -271,10 +270,10 @@ function CardBody({ card, showHint }: { card: CardItem; showHint: boolean }) {
         <View className='swipe-card__tags'>
           <View className='tag'>
             <CategoryIcon category={card.category} size={12} color={THEME.primary} />
-            <Text className='tag__text'>{category?.label}</Text>
+            <Text className='tag__text'>{category?.key}</Text>
           </View>
           <View className='tag tag-plain'>
-            <Text>{condition?.label}</Text>
+            <Text>{card.condition}</Text>
           </View>
           <View className='tag tag-plain'>
             <Text>估值 ¥{range?.label}</Text>
@@ -297,7 +296,7 @@ function CardBody({ card, showHint }: { card: CardItem; showHint: boolean }) {
           </View>
           <Text className='swipe-card__name ellipsis'>{card.owner.nickname}</Text>
           <Text className='swipe-card__meta'>
-            {formatDistance(card.distanceKm)} · {fromNow(card.createdAt)}
+            {formatDistance(card.distanceKm, card.owner.city)} · {fromNow(card.createdAt)}
           </Text>
         </View>
       </View>

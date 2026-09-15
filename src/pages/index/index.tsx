@@ -9,7 +9,7 @@ import ItemDetailSheet from '@/components/ItemDetailSheet'
 import MatchModal from '@/components/MatchModal'
 import { QuotaBadge, QuotaLimit } from '@/components/Quota'
 import type { SwipeCardHandle } from '@/components/SwipeCard'
-import { MAX_DISTANCE_KM, THEME } from '@/constants'
+import { THEME } from '@/constants'
 import { useDeckStore } from '@/store/deckStore'
 import { useUserStore } from '@/store/userStore'
 import type { CardItem, SwipeDirection } from '@/types'
@@ -75,7 +75,7 @@ export default function Index() {
         <View className='deck-head__left'>
           <Text className='deck-head__title'>附近好物</Text>
           <Text className='deck-head__meta'>
-            {user?.city || '上海'} · {MAX_DISTANCE_KM}km 内
+            {user?.city || '上海'} · 同城
           </Text>
         </View>
         <QuotaBadge quota={quota} />

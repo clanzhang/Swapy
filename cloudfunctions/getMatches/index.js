@@ -8,15 +8,16 @@ const _ = db.command
 const users = db.collection('users')
 const items = db.collection('items')
 const matches = db.collection('matches')
+const messages = db.collection('messages')
 
 /**
- * 匹配列表。
+ * getMatches — 当前用户的全部匹配记录。
  *
- * 传了 matchId 就只返回这一条（聊天页进来时用），
- * 不传则返回我的全部匹配（匹配列表页用）。
+ * 入参：无（从上下文取 openid），可选 matchId 只取一条。
+ * 出参：{ matches: [{ matchId, otherUser, myItem, otherItem, createdAt, lastMessage? }] }
  *
- * 客户端拿到的永远是「我」的视角：myItem / peerItem 已经把
- * userA / userB 的对称结构翻译好了，页面不需要知道自己是 A 还是 B。
+ * 返回值已经把 userA / userB 的对称结构翻译成「我」的视角，
+ * 页面不需要知道自己是 A 还是 B。
  */
 exports.main = async (event = {}) => {
   const { OPENID } = cloud.getWXContext()
@@ -43,31 +44,44 @@ exports.main = async (event = {}) => {
   }
 
   const views = await Promise.all(list.map((match) => buildView(match, me._id)))
-  return { ok: true, data: views.filter(Boolean) }
+  return { ok: true, data: { matches: views.filter(Boolean) } }
 }
 
 async function buildView(match, meId) {
   const isA = match.userA === meId
   const peerId = isA ? match.userB : match.userA
   const myItemId = isA ? match.itemB : match.itemA
-  const peerItemId = isA ? match.itemA : match.itemB
+  const otherItemId = isA ? match.itemA : match.itemB
 
-  const [peerRes, myItemRes, peerItemRes] = await Promise.all([
+  const [peerRes, myItemRes, otherItemRes, lastMsgRes] = await Promise.all([
     users.doc(peerId).get().catch(() => null),
     items.doc(myItemId).get().catch(() => null),
-    items.doc(peerItemId).get().catch(() => null),
+    items.doc(otherItemId).get().catch(() => null),
+    messages
+      .where({ matchId: match._id })
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get()
+      .catch(() => null),
   ])
 
-  if (!peerRes || !myItemRes || !peerItemRes) return null
+  if (!peerRes || !myItemRes || !otherItemRes) return null
 
-  const messages = match.messages || []
+  const peer = peerRes.data
+  const lastMessage = lastMsgRes && lastMsgRes.data[0]
 
   return {
-    _id: match._id,
+    matchId: match._id,
     createdAt: match.createdAt,
-    peer: peerRes.data,
+    otherUser: {
+      _id: peer._id,
+      nickname: peer.nickname,
+      avatarUrl: peer.avatarUrl,
+      city: peer.city,
+    },
     myItem: myItemRes.data,
-    peerItem: peerItemRes.data,
-    lastMessage: messages[messages.length - 1],
+    otherItem: otherItemRes.data,
+    // 规格外的可选字段，列表页做消息预览用
+    ...(lastMessage ? { lastMessage } : {}),
   }
 }

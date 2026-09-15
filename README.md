@@ -4,7 +4,7 @@
 
 发布自己的闲置，左右滑动浏览附近人的物品，双方互相「想要」时匹配成功，然后一对一聊怎么换。不涉及支付，交换默认线下当面完成。
 
-每天有 **30 次刷卡额度**，左滑跳过和右滑想要都算，中午 12:00 刷新。
+每天有 **30 次刷卡额度**，左滑跳过和右滑想要都算，中午 12:00 刷新。匹配池按 **同城** 筛选。
 
 ## 技术栈
 
@@ -60,7 +60,12 @@ echo 'TARO_APP_CLOUD_ENV=你的云环境ID' > .env
 ```
 src/
 ├── services/            # 数据访问层
-│   ├── adapter.ts       #   SwapyApi 接口 —— 页面只认这个
+│   ├── user.ts          #   userService  → login
+│   ├── item.ts          #   itemService  → getCards / publishItem / uploadImages
+│   ├── swipe.ts         #   swipeService → swipe
+│   ├── match.ts         #   matchService → getMatches
+│   ├── chat.ts          #   chatService  → sendMessage / getChatHistory / subscribe
+│   ├── adapter.ts       #   SwapyApi 接口 —— 上面这些只是它的薄封装
 │   ├── mock.ts          #   本地实现：内存 + Storage 持久化 + 种子数据
 │   ├── cloud.ts         #   云开发实现：云函数 + 数据库实时推送
 │   └── index.ts         #   唯一的实现选择点
@@ -96,8 +101,9 @@ assets/tab/              # TabBar 的 PNG（由 pnpm gen:tab-icons 生成，产�
 
 改代码前先看一眼这几条，都是不遵守就会出问题、但不会报错的地方。
 
-- **数据只走 `src/services`**。页面和 store 只 `import { api } from '@/services'`，
-  不直接调云函数或 Mock。加新能力先改 `SwapyApi` 接口，再补两份实现。
+- **数据只走 `src/services`**。页面按域引入 `userService` / `itemService` /
+  `swipeService` / `matchService` / `chatService`，不直接调云函数或 Mock。
+  加新能力先改 `SwapyApi` 接口，再补两份实现。
 - **匹配判定有两份**：`src/services/mock.ts` 和 `cloudfunctions/swipe/index.js`，
   改动必须同步两边。`pnpm verify:matching` 验证的是 Mock 那份。
 - **发布内容规则也有两份**：`src/utils/moderation.ts` 和

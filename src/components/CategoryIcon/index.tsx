@@ -2,12 +2,12 @@ import { Book, Gift, Microphone, Photograph, Star } from '@/components/Icon'
 import type { Category } from '@/types'
 
 const MAP = {
-  digital: Photograph,
-  book: Book,
-  toy: Gift,
+  数码: Photograph,
+  书籍: Book,
+  潮玩: Gift,
   // NutUI 没有 Music 图标，用 Microphone 代替「乐器」
-  instrument: Microphone,
-  sport: Star,
+  乐器: Microphone,
+  运动: Star,
 } as const
 
 interface Props {

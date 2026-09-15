@@ -2,21 +2,29 @@ import { create } from 'zustand'
 import Taro from '@tarojs/taro'
 
 import { CARD_PAGE_SIZE } from '@/constants'
-import { api } from '@/services'
-import type { CardItem, Category, MatchView, QuotaState, SwipeDirection, SwipeResult } from '@/types'
+import { itemService, matchService, swipeService } from '@/services'
+import type {
+  CardItem,
+  Category,
+  MatchItem,
+  QuotaState,
+  SwipeDirection,
+  SwipeResult,
+} from '@/types'
 
 /** 剩余不足这个数就提前拉下一批，让「滑到底」这件事用户感知不到 */
 const PREFETCH_THRESHOLD = 3
 
 interface DeckState {
   cards: CardItem[]
-  cursor: string | null
+  /** 下一页页码（从 1 开始） */
+  page: number
   hasMore: boolean
   loading: boolean
   /** 品类筛选，空数组 = 不限 */
   categories: Category[]
   /** 非空时首页弹出匹配成功动画 */
-  matchResult: MatchView | null
+  matchResult: MatchItem | null
   /** 每日刷卡额度，由服务端下发 */
   quota: QuotaState | null
   /**
@@ -36,7 +44,7 @@ interface DeckState {
 
 export const useDeckStore = create<DeckState>((set, get) => ({
   cards: [],
-  cursor: null,
+  page: 1,
   hasMore: true,
   loading: false,
   categories: [],
@@ -47,7 +55,7 @@ export const useDeckStore = create<DeckState>((set, get) => ({
   async init() {
     set({
       cards: [],
-      cursor: null,
+      page: 1,
       hasMore: true,
       loading: false,
       epoch: get().epoch + 1,
@@ -56,16 +64,16 @@ export const useDeckStore = create<DeckState>((set, get) => ({
   },
 
   async loadMore() {
-    const { loading, hasMore, cursor, categories, epoch } = get()
+    const { loading, hasMore, page, categories, epoch } = get()
     if (loading || !hasMore) return
     // 额度用完就别再拉卡了，服务端也不会给
     if (get().quota && get().quota!.remaining <= 0) return
 
     set({ loading: true })
     try {
-      const page = await api.getCards({
-        cursor,
-        limit: CARD_PAGE_SIZE,
+      const res = await itemService.getCards({
+        page,
+        pageSize: CARD_PAGE_SIZE,
         categories,
       })
 
@@ -73,11 +81,11 @@ export const useDeckStore = create<DeckState>((set, get) => ({
       if (get().epoch !== epoch) return
 
       set({
-        cards: [...get().cards, ...page.list],
-        cursor: page.nextCursor,
-        // 额度耗尽时无论游标如何都不再翻了
-        hasMore: page.nextCursor !== null && (page.quota?.remaining ?? 1) > 0,
-        quota: page.quota ?? get().quota,
+        cards: [...get().cards, ...res.cards],
+        page: page + 1,
+        // 额度耗尽时无论还有没有下一页都不再翻了
+        hasMore: res.hasMore && (res.quota?.remaining ?? 1) > 0,
+        quota: res.quota ?? get().quota,
       })
     } catch {
       // 拉取失败保持现状，下次滑动会再试
@@ -108,20 +116,28 @@ export const useDeckStore = create<DeckState>((set, get) => ({
     // 而服务端根本没记录，那张卡会「莫名其妙又出现」，更糟。
     let res: SwipeResult
     try {
-      res = await api.swipe(card._id, direction)
+      res = await swipeService.swipe({
+        toItemId: card._id,
+        toUserId: card.ownerId,
+        direction,
+      })
     } catch {
       set({ cards: [card, ...get().cards] })
       void Taro.showToast({ title: '网络不太好，再试一次', icon: 'none' })
       return
     }
 
-    set({ quota: res.quota })
-    if (res.matched && res.match) {
-      set({ matchResult: res.match })
+    if (res.quota) set({ quota: res.quota })
+
+    // swipe 只回 matchId，弹窗要展示双方物品，所以再取一次完整记录
+    if (res.matched && res.matchId) {
+      const match = await matchService.getMatch(res.matchId)
+      if (match) set({ matchResult: match })
     }
+
     // 最后一滴额度用完了，把牌堆清空，让首页直接进入引导态
-    if (res.quota.remaining <= 0) {
-      set({ cards: [], cursor: null, hasMore: false })
+    if ((res.quota?.remaining ?? 1) <= 0) {
+      set({ cards: [], page: 1, hasMore: false })
     }
   },
 

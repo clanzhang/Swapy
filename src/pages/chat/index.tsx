@@ -5,9 +5,9 @@ import { useEffect, useState } from 'react'
 import { Photograph } from '@/components/Icon'
 import ItemImage from '@/components/ItemImage'
 import { CATEGORY_MAP, THEME } from '@/constants'
-import { api } from '@/services'
+import { chatService, itemService, matchService } from '@/services'
 import { useUserStore } from '@/store/userStore'
-import type { ChatMessage, MatchView } from '@/types'
+import type { ChatMessage, MatchItem } from '@/types'
 import { clockTime } from '@/utils'
 
 import './index.scss'
@@ -16,7 +16,7 @@ export default function Chat() {
   const matchId = Taro.getCurrentInstance().router?.params?.matchId || ''
   const me = useUserStore((s) => s.user)
 
-  const [match, setMatch] = useState<MatchView | null>(null)
+  const [match, setMatch] = useState<MatchItem | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [draft, setDraft] = useState('')
   const [scrollIntoView, setScrollIntoView] = useState('')
@@ -27,18 +27,18 @@ export default function Chat() {
 
     void (async () => {
       const [detail, history] = await Promise.all([
-        api.getMatch(matchId),
-        api.getChatHistory(matchId),
+        matchService.getMatch(matchId),
+        chatService.getChatHistory({ matchId }),
       ])
       if (!alive) return
       setMatch(detail)
-      setMessages(history)
+      setMessages(history.messages)
       if (detail) {
-        void Taro.setNavigationBarTitle({ title: detail.peer.nickname })
+        void Taro.setNavigationBarTitle({ title: detail.otherUser.nickname })
       }
     })()
 
-    const off = api.subscribe(matchId, (msg) => {
+    const off = chatService.subscribe(matchId, (msg) => {
       setMessages((prev) => (prev.some((m) => m._id === msg._id) ? prev : [...prev, msg]))
     })
 
@@ -54,16 +54,15 @@ export default function Chat() {
     if (last) setScrollIntoView(`msg-${last._id}`)
   }, [messages])
 
-  const append = (msg: ChatMessage) => {
-    setMessages((prev) => (prev.some((m) => m._id === msg._id) ? prev : [...prev, msg]))
-  }
-
+  // 发出去的消息不在这里手动追加：sendMessage 只返回 messageId，
+  // 内容由订阅（云开发 watch / Mock 的 emit）推回来，避免两处各拼一份。
   const send = async () => {
     const text = draft.trim()
     if (!text) return
     setDraft('')
     try {
-      append(await api.sendMessage(matchId, 'text', text))
+      const res = await chatService.sendMessage({ matchId, content: text, type: 'text' })
+      if (!res.success) throw new Error('发送失败')
     } catch {
       void Taro.showToast({ title: '发送失败', icon: 'none' })
       setDraft(text)
@@ -82,15 +81,16 @@ export default function Chat() {
 
     // 上传/发送失败要和「取消选择」区分开，否则用户以为发出去了
     try {
-      const url = await api.uploadImage(path)
-      append(await api.sendMessage(matchId, 'image', url))
+      const [url] = await itemService.uploadImages([path])
+      const res = await chatService.sendMessage({ matchId, content: url, type: 'image' })
+      if (!res.success) throw new Error('发送失败')
     } catch {
       void Taro.showToast({ title: '图片发送失败', icon: 'none' })
     }
   }
 
   const myEmoji = match ? (CATEGORY_MAP[match.myItem.category]?.emoji ?? '📦') : '📦'
-  const peerEmoji = match ? (CATEGORY_MAP[match.peerItem.category]?.emoji ?? '📦') : '📦'
+  const peerEmoji = match ? (CATEGORY_MAP[match.otherItem.category]?.emoji ?? '📦') : '📦'
 
   return (
     <View className='page chat'>
@@ -107,10 +107,10 @@ export default function Chat() {
 
           <View className='chat__banner-side'>
             <View className='chat__banner-thumb'>
-              <ItemImage src={match.peerItem.images[0]} emoji={peerEmoji} />
+              <ItemImage src={match.otherItem.images[0]} emoji={peerEmoji} />
             </View>
             <Text className='chat__banner-label ellipsis'>
-              {match.peer.nickname} · {match.peerItem.title}
+              {match.otherUser.nickname} · {match.otherItem.title}
             </Text>
           </View>
         </View>
@@ -129,7 +129,7 @@ export default function Chat() {
           </View>
 
           {messages.map((msg) => {
-            const mine = msg.fromUserId === me?._id
+            const mine = msg.senderId === me?._id
             return (
               <View
                 key={msg._id}
@@ -138,7 +138,7 @@ export default function Chat() {
               >
                 {!mine && (
                   <View className='bubble-avatar'>
-                    <Text>{match?.peer.nickname.slice(0, 1) ?? '?'}</Text>
+                    <Text>{match?.otherUser.nickname.slice(0, 1) ?? '?'}</Text>
                   </View>
                 )}
                 <View className={`bubble ${mine ? 'bubble--mine' : ''}`}>

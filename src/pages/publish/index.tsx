@@ -7,7 +7,7 @@ import { Close, Plus, Warning } from '@/components/Icon'
 import CategoryIcon from '@/components/CategoryIcon'
 import ItemImage from '@/components/ItemImage'
 import { CATEGORIES, CONDITIONS, MAX_ITEM_IMAGES, PRICE_RANGES, THEME } from '@/constants'
-import { api } from '@/services'
+import { itemService } from '@/services'
 import type { Category, Condition, PriceRange } from '@/types'
 import { describeHits, moderateItem } from '@/utils/moderation'
 import type { ModerationHit } from '@/utils/moderation'
@@ -20,7 +20,8 @@ function warn(title: string) {
 
 interface ChipOption<T extends string> {
   key: T
-  label: string
+  /** 不传就显示 key 本身（品类/成色的 key 已经是中文） */
+  label?: string
 }
 
 function ChipGroup<T extends string>({
@@ -49,7 +50,7 @@ function ChipGroup<T extends string>({
               color={value === option.key ? THEME.primary : THEME.textSub}
             />
           )}
-          <Text className='chip__text'>{option.label}</Text>
+          <Text className='chip__text'>{option.label ?? option.key}</Text>
         </View>
       ))}
     </View>
@@ -154,25 +155,36 @@ export default function Publish() {
 
     setSubmitting(true)
     try {
-      await api.publishItem({
-        images,
+      const res = await itemService.publishItem({
+        // 图片先传云存储拿 fileID，再把 fileID 交给云函数
+        imageFileIds: await itemService.uploadImages(images),
         title: title.trim(),
         category,
         condition,
         priceRange,
         description: description.trim(),
       })
+
+      // 云函数的内容校验可能拦下客户端没拦到的（比如请求被改过）
+      if (!res.success) {
+        return void Taro.showModal({
+          title: '发布失败',
+          content: res.error || '请稍后重试',
+          showCancel: false,
+          confirmText: '我知道了',
+          confirmColor: '#FF6B35',
+        })
+      }
+
       reset()
       void Taro.showToast({ title: '发布成功', icon: 'success' })
       // 切到「我的」而不是首页：刚发的东西就在「我的发布」第一条。
       // 回首页只会看到一堆别人的卡，用户会以为「发了但没显示」。
       setTimeout(() => void Taro.switchTab({ url: '/pages/profile/index' }), 900)
-    } catch (err) {
-      // 服务端可能拦下客户端没拦到的内容（比如请求被改过）
-      const message = err instanceof Error && err.message ? err.message : '发布失败，请稍后重试'
+    } catch {
       void Taro.showModal({
         title: '发布失败',
-        content: message,
+        content: '网络不太好，请稍后重试',
         showCancel: false,
         confirmText: '我知道了',
         confirmColor: '#FF6B35',
@@ -234,7 +246,11 @@ export default function Publish() {
           </Field>
 
           <Field label='成色'>
-            <ChipGroup<Condition> options={CONDITIONS} value={condition} onChange={setCondition} />
+            <ChipGroup<Condition>
+              options={CONDITIONS.map((c) => ({ key: c }))}
+              value={condition}
+              onChange={setCondition}
+            />
           </Field>
 
           <Field label='估值区间' hint='只和区间有交集的物品互相推荐'>

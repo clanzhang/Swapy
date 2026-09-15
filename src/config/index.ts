@@ -15,6 +15,8 @@ export const COLLECTIONS = {
   items: 'items',
   swipes: 'swipes',
   matches: 'matches',
+  /** 聊天记录独立成集合，不嵌在 matches 里 —— 方便分页查询 */
+  messages: 'messages',
 } as const
 
 /** 当前用户「所在城市」兜底值，Mock 下也用它算距离 */

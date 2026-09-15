@@ -17,9 +17,14 @@ export function haversine(a: LatLng, b: LatLng): number {
   return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(h))
 }
 
-/** 距离展示：<1km 用米，<10km 保留一位小数 */
-export function formatDistance(km: number): string {
-  if (!Number.isFinite(km)) return '未知距离'
+/**
+ * 距离展示。
+ *
+ * 筛选走的是同城，但卡片上显示具体距离更友好。
+ * 拿不到双方定位时就回退显示城市。
+ */
+export function formatDistance(km: number | undefined, city?: string): string {
+  if (km === undefined || !Number.isFinite(km)) return city || '同城'
   if (km < 1) return `${Math.max(1, Math.round(km * 1000))}m`
   if (km < 10) return `${km.toFixed(1)}km`
   return `${Math.round(km)}km`

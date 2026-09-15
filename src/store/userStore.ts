@@ -20,7 +20,8 @@ export const useUserStore = create<UserState>((set, get) => ({
     // 先用缓存渲染，网络回来再覆盖，避免白屏
     const cached = api.getCachedUser()
     if (cached) set({ user: cached })
-    const user = await api.init()
+    // login 现在返回 { user, isNew }，新用户不需要额外处理
+    const { user } = await api.login()
     set({ user, ready: true })
   },
 

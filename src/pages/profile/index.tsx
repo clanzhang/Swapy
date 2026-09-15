@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import CategoryIcon from '@/components/CategoryIcon'
 import { Heart, List, Setting, User } from '@/components/Icon'
 import ItemImage from '@/components/ItemImage'
-import { CATEGORY_MAP, CONDITION_MAP, PRICE_RANGE_MAP, THEME } from '@/constants'
+import { CATEGORY_MAP, PRICE_RANGE_MAP, THEME } from '@/constants'
 import { USE_MOCK } from '@/config'
 import { resetMockData } from '@/services/mock'
 import { useDeckStore } from '@/store/deckStore'
@@ -188,10 +188,10 @@ export default function Profile() {
                       <View className='row-card__tags'>
                         <View className='tag'>
                           <CategoryIcon category={item.category} size={11} color={THEME.primary} />
-                          <Text className='tag__text'>{category?.label}</Text>
+                          <Text className='tag__text'>{category?.key}</Text>
                         </View>
                         <View className='tag tag-plain'>
-                          <Text>{CONDITION_MAP[item.condition]?.label}</Text>
+                          <Text>{item.condition}</Text>
                         </View>
                         <View className='tag tag-plain'>
                           <Text>¥{PRICE_RANGE_MAP[item.priceRange]?.label}</Text>
@@ -230,7 +230,7 @@ export default function Profile() {
                     <View className='row-card__tags'>
                       <View className='tag'>
                         <CategoryIcon category={card.category} size={11} color={THEME.primary} />
-                        <Text className='tag__text'>{category?.label}</Text>
+                        <Text className='tag__text'>{category?.key}</Text>
                       </View>
                       <View className='tag tag-plain'>
                         <Text>{formatDistance(card.distanceKm)}</Text>

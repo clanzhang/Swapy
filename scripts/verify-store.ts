@@ -11,7 +11,7 @@ import assert from 'node:assert/strict'
 import { api } from '@/services'
 import { resetMockData } from '@/services/mock'
 import { useDeckStore } from '@/store/deckStore'
-import type { CardItem, CardQuery, Page } from '@/types'
+import type { CardItem, GetCardsParams, GetCardsResult } from '@/types'
 import { DAILY_QUOTA } from '@/utils/quota'
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -26,7 +26,7 @@ async function fresh() {
   resetMockData()
   useDeckStore.setState({
     cards: [],
-    cursor: null,
+    page: 1,
     hasMore: true,
     loading: false,
     categories: [],
@@ -41,20 +41,25 @@ async function fresh() {
 async function main() {
   console.log('\n换换 · deckStore 状态机验证\n')
 
+  const swipeCard = (card: CardItem, direction: 'left' | 'right') =>
+    api.swipe({ toItemId: card._id, toUserId: card.ownerId, direction })
+
+  const quotaNow = async () => (await api.getCards({ page: 1, pageSize: 1 })).quota!
+
   await step('同一张卡重复提交不会重复扣额度', async () => {
     // 客户端重试、或牌堆状态陈旧时会重复提交。幂等检查必须在扣额度之前，
     // 否则用户白丢一次额度却根本没看到新卡。
     await fresh()
 
     const card = deck().cards[0]
-    const before = deck().quota!.used
+    const before = (await quotaNow()).used
 
-    await api.swipe(card._id, 'right')
-    const afterFirst = (await api.getCards({ limit: 1 })).quota!
-    await api.swipe(card._id, 'right')
-    const afterSecond = (await api.getCards({ limit: 1 })).quota!
-    await api.swipe(card._id, 'left')
-    const afterThird = (await api.getCards({ limit: 1 })).quota!
+    await swipeCard(card, 'right')
+    const afterFirst = await quotaNow()
+    await swipeCard(card, 'right')
+    const afterSecond = await quotaNow()
+    await swipeCard(card, 'left')
+    const afterThird = await quotaNow()
 
     assert.equal(afterFirst.used, before + 1, '第一次滑动应该扣 1')
     assert.equal(afterSecond.used, afterFirst.used, '重复滑动不该再扣')
@@ -69,7 +74,7 @@ async function main() {
     const original = api.getCards.bind(api)
     let delayNext = true
     // 故意把 API 换成慢的：这就是测试的目的（模拟过期响应）。
-    api.getCards = async (query: CardQuery): Promise<Page<CardItem>> => {
+    api.getCards = async (query: GetCardsParams): Promise<GetCardsResult> => {
       if (delayNext) {
         delayNext = false
         await sleep(60)
@@ -80,7 +85,7 @@ async function main() {
     // 慢请求（无筛选）还没回来就切品类
     const slow = deck().init()
     await sleep(10)
-    await deck().setCategories(['digital'])
+    await deck().setCategories(['数码'])
     await slow
     await sleep(150)
 
@@ -90,7 +95,7 @@ async function main() {
 
     const cards = deck().cards
     assert.ok(cards.length > 0, '切品类后应该有卡')
-    const wrong = cards.filter((c) => c.category !== 'digital')
+    const wrong = cards.filter((c) => c.category !== '数码')
     assert.equal(
       wrong.length,
       0,
@@ -156,7 +161,7 @@ async function main() {
       await sleep(8)
 
       // 中途穿插切品类，制造并发
-      if (i === 15) await deck().setCategories(['toy'])
+      if (i === 15) await deck().setCategories(['潮玩'])
       if (i === 30) await deck().setCategories([])
     }
 

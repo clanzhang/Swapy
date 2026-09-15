@@ -3,16 +3,22 @@ import Taro from '@tarojs/taro'
 import { CLOUD_ENV, COLLECTIONS, DEFAULT_CITY, DEFAULT_LOCATION } from '@/config'
 import type {
   CardItem,
-  CardQuery,
   ChatMessage,
+  GetCardsParams,
+  GetCardsResult,
+  GetChatHistoryParams,
+  GetChatHistoryResult,
+  GetMatchesResult,
   Item,
   ItemStatus,
-  MatchView,
-  MessageType,
-  Page,
+  LoginResult,
+  MatchItem,
   ProfilePatch,
   PublishItemInput,
-  SwipeDirection,
+  PublishItemResult,
+  SendMessageParams,
+  SendMessageResult,
+  SwipeParams,
   SwipeResult,
   User,
 } from '@/types'
@@ -24,9 +30,10 @@ const USER_KEY = 'swapy:user:v1'
 /**
  * 云开发实现。
  *
- * 所有「需要可信判断」的逻辑（尤其是匹配判定）都放在云函数里，
- * 客户端不直接写 swipes / matches，防止被篡改。
- * 只有聊天走数据库实时推送（watch），因为那是最低延迟的路径。
+ * 所有需要可信判断的逻辑（匹配池筛选、匹配判定、额度、内容校验）都在云函数里，
+ * 客户端不直接写 swipes / matches / messages，防止被绕过。
+ *
+ * 聊天是唯一走客户端数据库查询的地方 —— 实时推送（watch）必须由客户端建立。
  */
 
 // 部分平台没有 Taro.cloud，这里统一收口并给出可读的报错
@@ -40,6 +47,7 @@ function db(): any {
   return cloud().database()
 }
 
+/** 云函数统一返回 { ok, data, message }，这里拆包 */
 async function call<T>(name: string, data: Record<string, unknown> = {}): Promise<T> {
   const res = await cloud().callFunction({ name, data })
   const result = res?.result as { ok?: boolean; data?: T; message?: string } | undefined
@@ -57,26 +65,23 @@ class CloudApi implements SwapyApi {
     if (this.inited) return
     cloud().init({ env: CLOUD_ENV, traceUser: true })
     this.inited = true
-    // 给所有请求带上最新活跃时间，方便云函数更新 lastActiveAt
-    await this.init()
+    await this.login()
   }
 
-  async init(): Promise<User> {
+  // ------------------------------------------------------------------ login
+
+  async login(): Promise<LoginResult> {
     if (!this.inited) {
       cloud().init({ env: CLOUD_ENV, traceUser: true })
       this.inited = true
     }
-    const user = await call<User>('login', {
+    const result = await call<LoginResult>('login', {
       city: this.getCachedUser()?.city || DEFAULT_CITY,
       location: DEFAULT_LOCATION,
     })
-    this.user = user
-    try {
-      Taro.setStorageSync(USER_KEY, JSON.stringify(user))
-    } catch {
-      // ignore
-    }
-    return user
+    this.user = result.user
+    this.cacheUser(result.user)
+    return result
   }
 
   getCachedUser(): User | null {
@@ -93,37 +98,112 @@ class CloudApi implements SwapyApi {
     return null
   }
 
-  async updateProfile(patch: ProfilePatch): Promise<User> {
-    const user = await call<User>('login', { ...patch })
-    this.user = user
+  private cacheUser(user: User) {
     try {
       Taro.setStorageSync(USER_KEY, JSON.stringify(user))
     } catch {
       // ignore
     }
+  }
+
+  async updateProfile(patch: ProfilePatch): Promise<User> {
+    // 复用 login 云函数：多传几个字段它就顺带更新资料
+    const user = await call<User>('login', { ...patch })
+    this.user = user
+    this.cacheUser(user)
     return user
   }
 
-  async getCards(query: CardQuery): Promise<Page<CardItem>> {
+  // --------------------------------------------------------------- getCards
+
+  async getCards(params: GetCardsParams = {}): Promise<GetCardsResult> {
     await this.ensureInit()
-    return call<Page<CardItem>>('getCards', { ...query })
+    return call<GetCardsResult>('getCards', { ...params })
   }
 
-  async swipe(toItemId: string, direction: SwipeDirection): Promise<SwipeResult> {
+  // ------------------------------------------------------------------ swipe
+
+  async swipe(params: SwipeParams): Promise<SwipeResult> {
     await this.ensureInit()
-    return call<SwipeResult>('swipe', { toItemId, direction })
+    return call<SwipeResult>('swipe', { ...params })
   }
 
-  async publishItem(input: PublishItemInput): Promise<Item> {
+  // ------------------------------------------------------------- publishItem
+
+  async publishItem(input: PublishItemInput): Promise<PublishItemResult> {
     await this.ensureInit()
-    // 图片先传云存储，再把 fileID 交给云函数入库
-    const uploaded: string[] = []
-    for (const path of input.images) {
-      // eslint-disable-next-line no-await-in-loop
-      uploaded.push(await this.uploadImage(path))
+
+    // 先传云存储拿 fileID，再把 fileID 交给 publishItem
+    const imageFileIds: string[] = []
+    for (const path of input.imageFileIds) {
+      imageFileIds.push(await this.uploadImage(path))
     }
-    return call<Item>('publishItem', { ...input, images: uploaded })
+
+    return call<PublishItemResult>('publishItem', { ...input, imageFileIds })
   }
+
+  // ------------------------------------------------------------- getMatches
+
+  async getMatches(): Promise<GetMatchesResult> {
+    await this.ensureInit()
+    return call<GetMatchesResult>('getMatches')
+  }
+
+  async getMatch(matchId: string): Promise<MatchItem | null> {
+    await this.ensureInit()
+    const { matches } = await call<GetMatchesResult>('getMatches', { matchId })
+    return matches[0] ?? null
+  }
+
+  // ------------------------------------------------- sendMessage / 聊天记录
+
+  async sendMessage(params: SendMessageParams): Promise<SendMessageResult> {
+    await this.ensureInit()
+    return call<SendMessageResult>('sendMessage', { ...params })
+  }
+
+  async getChatHistory(params: GetChatHistoryParams): Promise<GetChatHistoryResult> {
+    await this.ensureInit()
+    return call<GetChatHistoryResult>('getChatHistory', { ...params })
+  }
+
+  /**
+   * 聊天实时推送：watch messages 集合里该会话的新增记录。
+   * 消息独立成集合（不嵌在 matches 文档里）就是为了能这样按 matchId 过滤。
+   */
+  subscribe(matchId: string, handler: (msg: ChatMessage) => void): () => void {
+    let watcher: any = null
+    try {
+      watcher = db()
+        .collection(COLLECTIONS.messages)
+        .where({ matchId })
+        .watch({
+          onChange: (snapshot: any) => {
+            const added = (snapshot?.docChanges ?? []).filter(
+              (c: any) => c.dataType === 'add' || c.queueType === 'enqueue',
+            )
+            for (const change of added) {
+              const doc = change.doc as ChatMessage
+              if (doc) handler(doc)
+            }
+          },
+          onError: () => {
+            // 实时推送失败不影响手动刷新，静默降级
+          },
+        })
+    } catch {
+      // ignore
+    }
+    return () => {
+      try {
+        watcher?.close()
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  // ------------------------------------------------------ 规格外的补充能力
 
   async getMyItems(): Promise<Item[]> {
     await this.ensureInit()
@@ -142,70 +222,13 @@ class CloudApi implements SwapyApi {
 
   async getWantedItems(): Promise<CardItem[]> {
     await this.ensureInit()
-    return call<CardItem[]>('getCards', { scope: 'wanted' })
+    const res = await call<{ cards: CardItem[] }>('getCards', { scope: 'wanted' })
+    return res.cards ?? []
   }
 
   async updateItemStatus(itemId: string, status: ItemStatus): Promise<void> {
     await this.ensureInit()
     await call('publishItem', { action: 'updateStatus', itemId, status })
-  }
-
-  async getMatches(): Promise<MatchView[]> {
-    await this.ensureInit()
-    return call<MatchView[]>('getMatches')
-  }
-
-  async getMatch(matchId: string): Promise<MatchView | null> {
-    await this.ensureInit()
-    const list = await call<MatchView[]>('getMatches', { matchId })
-    return list[0] ?? null
-  }
-
-  async getChatHistory(matchId: string): Promise<ChatMessage[]> {
-    await this.ensureInit()
-    return call<ChatMessage[]>('getChatHistory', { matchId })
-  }
-
-  async sendMessage(
-    matchId: string,
-    type: MessageType,
-    content: string,
-  ): Promise<ChatMessage> {
-    await this.ensureInit()
-    return call<ChatMessage>('sendMessage', { matchId, type, content })
-  }
-
-  /**
-   * 聊天实时推送：watch 云端 matches 集合中该会话的 messages 数组。
-   * 云开发实时数据推送不需要额外的长连接服务，一对一会话完全够用。
-   */
-  subscribe(matchId: string, handler: (msg: ChatMessage) => void): () => void {
-    let watcher: any = null
-    try {
-      watcher = db()
-        .collection(COLLECTIONS.matches)
-        .doc(matchId)
-        .watch({
-          onChange: (snapshot: any) => {
-            const doc = snapshot?.docs?.[0]
-            if (!doc?.messages?.length) return
-            const last = doc.messages[doc.messages.length - 1] as ChatMessage
-            handler(last)
-          },
-          onError: () => {
-            // 实时推送失败不影响手动刷新，静默降级
-          },
-        })
-    } catch {
-      // ignore
-    }
-    return () => {
-      try {
-        watcher?.close()
-      } catch {
-        // ignore
-      }
-    }
   }
 
   async uploadImage(filePath: string): Promise<string> {

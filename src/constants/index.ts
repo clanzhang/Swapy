@@ -13,20 +13,19 @@ export const THEME = {
   danger: '#FF4D4F',
 }
 
-export const CATEGORIES: { key: Category; label: string; emoji: string }[] = [
-  { key: 'digital', label: '数码', emoji: '📱' },
-  { key: 'book', label: '书籍', emoji: '📚' },
-  { key: 'toy', label: '潮玩', emoji: '🧸' },
-  { key: 'instrument', label: '乐器', emoji: '🎸' },
-  { key: 'sport', label: '运动', emoji: '🏀' },
+/**
+ * 品类。注意 key 就是存进数据库的值（中文），label 不再单独存在。
+ * emoji 只用于 ItemImage 的占位图兜底，UI 上的标签图标走 CategoryIcon。
+ */
+export const CATEGORIES: { key: Category; emoji: string }[] = [
+  { key: '数码', emoji: '📱' },
+  { key: '书籍', emoji: '📚' },
+  { key: '潮玩', emoji: '🧸' },
+  { key: '乐器', emoji: '🎸' },
+  { key: '运动', emoji: '🏀' },
 ]
 
-export const CONDITIONS: { key: Condition; label: string }[] = [
-  { key: 'new', label: '全新' },
-  { key: '95', label: '95新' },
-  { key: '90', label: '9成新' },
-  { key: '80', label: '8成新' },
-]
+export const CONDITIONS: Condition[] = ['全新', '95新', '9成新', '8成新']
 
 export const PRICE_RANGES: { key: PriceRange; label: string; min: number; max: number }[] = [
   { key: '0-50', label: '0-50', min: 0, max: 50 },
@@ -40,21 +39,16 @@ export const CATEGORY_MAP = Object.fromEntries(CATEGORIES.map((c) => [c.key, c])
   (typeof CATEGORIES)[number]
 >
 
-export const CONDITION_MAP = Object.fromEntries(CONDITIONS.map((c) => [c.key, c])) as Record<
-  Condition,
-  (typeof CONDITIONS)[number]
->
-
 export const PRICE_RANGE_MAP = Object.fromEntries(PRICE_RANGES.map((p) => [p.key, p])) as Record<
   PriceRange,
   (typeof PRICE_RANGES)[number]
 >
 
-/** 匹配池筛选：距离阈值（km） */
-export const MAX_DISTANCE_KM = 50
-
-/** 首页每批拉取的卡片数 */
+/** 首页每批拉取的卡片数（对应 getCards 的 pageSize） */
 export const CARD_PAGE_SIZE = 10
 
 /** 发布图片上限 */
 export const MAX_ITEM_IMAGES = 9
+
+/** 聊天记录每页条数（对应 getChatHistory） */
+export const CHAT_PAGE_SIZE = 50

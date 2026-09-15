@@ -5,21 +5,22 @@ import { useState } from 'react'
 import { Heart } from '@/components/Icon'
 import ItemImage from '@/components/ItemImage'
 import { CATEGORY_MAP } from '@/constants'
-import { api } from '@/services'
-import type { MatchView } from '@/types'
+import { matchService } from '@/services'
+import type { MatchItem } from '@/types'
 import { fromNow } from '@/utils'
 
 import './index.scss'
 
 export default function Matches() {
-  const [list, setList] = useState<MatchView[]>([])
+  const [list, setList] = useState<MatchItem[]>([])
   const [loading, setLoading] = useState(true)
 
   useDidShow(() => {
     void (async () => {
       setLoading(true)
       try {
-        setList(await api.getMatches())
+        const res = await matchService.getMatches()
+        setList(res.matches)
       } catch {
         // 拉取失败保持现状，用户切回来会重试
       } finally {
@@ -57,19 +58,19 @@ export default function Matches() {
 
           {list.map((match) => {
             const mine = CATEGORY_MAP[match.myItem.category]?.emoji ?? '📦'
-            const peer = CATEGORY_MAP[match.peerItem.category]?.emoji ?? '📦'
+            const peer = CATEGORY_MAP[match.otherItem.category]?.emoji ?? '📦'
             return (
               <View
-                key={match._id}
+                key={match.matchId}
                 className='match-row'
-                onClick={() => openChat(match._id)}
+                onClick={() => openChat(match.matchId)}
               >
                 <View className='match-row__head'>
                   <View className='match-row__avatar'>
-                    <Text>{match.peer.nickname.slice(0, 1)}</Text>
+                    <Text>{match.otherUser.nickname.slice(0, 1)}</Text>
                   </View>
                   <View className='match-row__who'>
-                    <Text className='match-row__name'>{match.peer.nickname}</Text>
+                    <Text className='match-row__name'>{match.otherUser.nickname}</Text>
                     <Text className='match-row__time'>匹配于 {fromNow(match.createdAt)}</Text>
                   </View>
                   <View className='match-row__cta'>
@@ -91,16 +92,16 @@ export default function Matches() {
 
                   <View className='match-row__item'>
                     <View className='match-row__thumb'>
-                      <ItemImage src={match.peerItem.images[0]} emoji={peer} />
+                      <ItemImage src={match.otherItem.images[0]} emoji={peer} />
                     </View>
-                    <Text className='match-row__item-title ellipsis'>{match.peerItem.title}</Text>
+                    <Text className='match-row__item-title ellipsis'>{match.otherItem.title}</Text>
                   </View>
                 </View>
 
                 <View className='match-row__last'>
                   <Text className='ellipsis'>
                     {match.lastMessage
-                      ? `${match.lastMessage.fromUserId === match.peer._id ? '' : '我：'}${
+                      ? `${match.lastMessage.senderId === match.otherUser._id ? '' : '我：'}${
                           match.lastMessage.type === 'image' ? '[图片]' : match.lastMessage.content
                         }`
                       : '打个招呼，聊聊怎么换吧'}

@@ -15,17 +15,19 @@ const { DAILY_QUOTA, buildQuota, currentUsed } = require('./quota')
 /**
  * 匹配成功订阅消息模板 ID。
  * 在微信公众平台「订阅消息」里申请后填到这里，留空则跳过推送。
- * 模板字段名（thing1 / thing2 / time3）要和模板实际字段一一对应。
  */
 const MATCH_TEMPLATE_ID = ''
 
 /**
- * 记录一次滑动，并判断是否达成交换匹配。
+ * swipe — 记录滑动，右滑时判断是否双向匹配。
+ *
+ * 入参：{ toItemId, toUserId, direction }
+ * 出参：{ matched, matchId?, otherUser?, quota? }
  *
  * 判定规则：A 右滑了 B 的物品 X，且 B 之前右滑过 A 的任一物品 Y，
  * 则 (A,X) 与 (B,Y) 组成一次匹配。
  *
- * 这段逻辑和客户端 src/services/mock.ts 里的实现必须保持一致 ——
+ * 这段逻辑和 src/services/mock.ts 里的实现必须保持一致 ——
  * Mock 只是本地预览，真实判定以这里为准，客户端不写 swipes / matches。
  */
 exports.main = async (event = {}) => {
@@ -50,10 +52,7 @@ exports.main = async (event = {}) => {
   // 幂等检查要放在扣额度**之前**。
   // 客户端重试、或牌堆状态陈旧时会重复提交同一张卡，如果先扣额度，
   // 用户会白丢一次额度却根本没看到新卡。
-  const existed = await swipes
-    .where({ fromUserId: me._id, toItemId })
-    .limit(1)
-    .get()
+  const existed = await swipes.where({ fromUserId: me._id, toItemId }).limit(1).get()
   if (existed.data.length) {
     return { ok: true, data: { matched: false, quota: await readQuota(me, now) } }
   }
@@ -122,7 +121,6 @@ exports.main = async (event = {}) => {
       // itemA 是 userA 右滑的物品，itemB 是 userB 右滑的物品
       itemA: toItemId,
       itemB: reciprocal.toItemId,
-      messages: [],
       createdAt: now,
       lastMessageAt: now,
     }
@@ -131,11 +129,18 @@ exports.main = async (event = {}) => {
     await notifyBoth(match, me, target.ownerId)
   }
 
+  const peerRes = await users.doc(target.ownerId).get().catch(() => null)
+  const peer = peerRes && peerRes.data
+  const otherUser = peer
+    ? { _id: peer._id, nickname: peer.nickname, avatarUrl: peer.avatarUrl, city: peer.city }
+    : undefined
+
   return {
     ok: true,
     data: {
       matched: true,
-      match: await buildMatchView(match, me._id),
+      matchId: match._id,
+      otherUser,
       quota: await readQuota(me, now),
     },
   }
@@ -227,28 +232,4 @@ async function notifyBoth(match, me, peerId) {
       }),
     ),
   )
-}
-
-async function buildMatchView(match, meId) {
-  const isA = match.userA === meId
-  const peerId = isA ? match.userB : match.userA
-  const myItemId = isA ? match.itemB : match.itemA
-  const peerItemId = isA ? match.itemA : match.itemB
-
-  const [peerRes, myItemRes, peerItemRes] = await Promise.all([
-    users.doc(peerId).get().catch(() => null),
-    items.doc(myItemId).get().catch(() => null),
-    items.doc(peerItemId).get().catch(() => null),
-  ])
-
-  const messages = match.messages || []
-
-  return {
-    _id: match._id,
-    createdAt: match.createdAt,
-    peer: peerRes && peerRes.data,
-    myItem: myItemRes && myItemRes.data,
-    peerItem: peerItemRes && peerItemRes.data,
-    lastMessage: messages[messages.length - 1],
-  }
 }

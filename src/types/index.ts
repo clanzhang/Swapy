@@ -1,8 +1,8 @@
 /** 品类：只允许这五种，和云函数校验保持一致 */
-export type Category = 'digital' | 'book' | 'toy' | 'instrument' | 'sport'
+export type Category = '数码' | '书籍' | '潮玩' | '乐器' | '运动'
 
 /** 成色 */
-export type Condition = 'new' | '95' | '90' | '80'
+export type Condition = '全新' | '95新' | '9成新' | '8成新'
 
 /** 估值区间（发布时用户自选） */
 export type PriceRange = '0-50' | '50-200' | '200-500' | '500-2000'
@@ -68,43 +68,42 @@ export interface Match {
   lastMessageAt: number
 }
 
-/** 聊天记录：线上落在 matches.messages 数组里 */
+/** 聊天消息。存在独立的 messages 集合里，不嵌在 matches 文档中。 */
 export interface ChatMessage {
   _id: string
   matchId: string
-  fromUserId: string
-  type: MessageType
+  /** 发送者用户 ID */
+  senderId: string
   content: string
+  type: MessageType
   createdAt: number
-}
-
-/** 首页卡片 = 物品 + 发布者 + 距离 */
-export interface CardItem extends Item {
-  owner: User
-  distanceKm: number
-}
-
-/** 匹配列表视图（已按「我」的视角展开） */
-export interface MatchView {
-  _id: string
-  createdAt: number
-  peer: User
-  /** 我拿去交换的物品 */
-  myItem: Item
-  /** 对方拿去交换的物品 */
-  peerItem: Item
-  lastMessage?: ChatMessage
-}
-
-export interface Page<T> {
-  list: T[]
-  nextCursor: string | null
-  /** 每日配额状态，跟卡片一起下发，省一次请求 */
-  quota?: QuotaState
 }
 
 /**
- * 每日「想要」配额。
+ * 首页卡片 = 物品 + 发布者。
+ * distanceKm 是规格外的可选字段：筛选看同城，但卡片上显示距离更友好，
+ * 拿不到定位时前端回退显示 city。
+ */
+export interface CardItem extends Item {
+  owner: User
+  distanceKm?: number
+}
+
+/** 匹配列表项（已按「我」的视角展开，不需要页面知道自己是 A 还是 B） */
+export interface MatchItem {
+  matchId: string
+  otherUser: User
+  /** 我拿去交换的物品 */
+  myItem: Item
+  /** 对方拿去交换的物品 */
+  otherItem: Item
+  createdAt: number
+  /** 最近一条消息，列表页做预览（规格外，可选） */
+  lastMessage?: ChatMessage
+}
+
+/**
+ * 每日刷卡额度。
  *
  * 只由服务端计算 —— 客户端拿到的 remaining 是权威值，
  * 自己不要根据本地时间推算，否则时区/跨天边界会对不上。
@@ -117,25 +116,91 @@ export interface QuotaState {
   resetAt: number
 }
 
-export interface CardQuery {
-  cursor?: string | null
-  limit?: number
+// ---------------------------------------------------------------- 云函数契约
+//
+// 下面的请求/响应类型和 cloudfunctions/* 一一对应。
+// Mock 实现走的是同一套类型，所以页面可以在离线状态下跑通全流程。
+
+/** login */
+export interface LoginResult {
+  user: User
+  /** 是否是本次新创建的账号 */
+  isNew: boolean
+}
+
+/** getCards */
+export interface GetCardsParams {
+  page?: number
+  pageSize?: number
+  /** 规格外：首页的品类筛选 chips。不传就是全部品类 */
   categories?: Category[]
 }
 
+export interface GetCardsResult {
+  cards: CardItem[]
+  hasMore: boolean
+  /** 规格外：每日额度，跟卡片一起下发省一次请求 */
+  quota?: QuotaState
+}
+
+/** swipe */
+export interface SwipeParams {
+  toItemId: string
+  toUserId: string
+  direction: SwipeDirection
+}
+
+export interface SwipeResult {
+  matched: boolean
+  matchId?: string
+  otherUser?: User
+  /** 规格外 */
+  quota?: QuotaState
+}
+
+/** publishItem */
 export interface PublishItemInput {
-  images: string[]
   title: string
   category: Category
   condition: Condition
   priceRange: PriceRange
   description: string
+  /** 云存储 fileID 列表 */
+  imageFileIds: string[]
 }
 
-export interface SwipeResult {
-  matched: boolean
-  match?: MatchView
-  quota: QuotaState
+export interface PublishItemResult {
+  success: boolean
+  itemId?: string
+  error?: string
+}
+
+/** getMatches */
+export interface GetMatchesResult {
+  matches: MatchItem[]
+}
+
+/** sendMessage */
+export interface SendMessageParams {
+  matchId: string
+  content: string
+  type: MessageType
+}
+
+export interface SendMessageResult {
+  success: boolean
+  messageId?: string
+}
+
+/** getChatHistory */
+export interface GetChatHistoryParams {
+  matchId: string
+  page?: number
+}
+
+export interface GetChatHistoryResult {
+  success: boolean
+  messages: ChatMessage[]
 }
 
 export interface ProfilePatch {

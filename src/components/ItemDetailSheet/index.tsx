@@ -2,7 +2,7 @@ import { ScrollView, Text, View } from '@tarojs/components'
 
 import CategoryIcon from '../CategoryIcon'
 import { THEME } from '@/constants'
-import { CATEGORY_MAP, CONDITION_MAP, PRICE_RANGE_MAP } from '@/constants'
+import { CATEGORY_MAP, PRICE_RANGE_MAP } from '@/constants'
 import type { CardItem, SwipeDirection } from '@/types'
 import { fromNow } from '@/utils'
 import { formatDistance } from '@/utils/geo'
@@ -22,7 +22,6 @@ export default function ItemDetailSheet({ card, onClose, onDecide }: Props) {
   if (!card) return null
 
   const category = CATEGORY_MAP[card.category]
-  const condition = CONDITION_MAP[card.condition]
   const range = PRICE_RANGE_MAP[card.priceRange]
 
   return (
@@ -50,16 +49,16 @@ export default function ItemDetailSheet({ card, onClose, onDecide }: Props) {
             <View className='sheet__tags'>
               <View className='tag'>
                 <CategoryIcon category={card.category} size={12} color={THEME.primary} />
-                <Text className='tag__text'>{category?.label}</Text>
+                <Text className='tag__text'>{category?.key}</Text>
               </View>
               <View className='tag tag-plain'>
-                <Text>{condition?.label}</Text>
+                <Text>{card.condition}</Text>
               </View>
               <View className='tag tag-plain'>
                 <Text>估值 ¥{range?.label}</Text>
               </View>
               <View className='tag tag-plain'>
-                <Text>{formatDistance(card.distanceKm)}</Text>
+                <Text>{formatDistance(card.distanceKm, card.owner.city)}</Text>
               </View>
             </View>
 
