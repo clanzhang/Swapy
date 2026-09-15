@@ -22,6 +22,7 @@ import type {
   User,
 } from '@/types'
 import { haversine } from '@/utils/geo'
+import { describeHits, moderateItem } from '@/utils/moderation'
 import { DAILY_QUOTA, nextResetAt, quotaDayKey } from '@/utils/quota'
 import { uid } from '@/utils'
 
@@ -53,6 +54,17 @@ function seedDb(): MockDb {
     meId: SEED_ME._id,
     quota: { dayKey: quotaDayKey(Date.now()), used: 0 },
     seedVersion: SEED_VERSION,
+  }
+}
+
+/**
+ * 内容不合规就抛错，把具体原因带在 message 里让页面直接展示。
+ * 客户端能被绕过，所以真正的门在这里（云函数侧同样有一道）。
+ */
+function assertPublishable(title: string, description: string) {
+  const result = moderateItem({ title, description })
+  if (!result.ok) {
+    throw new Error(describeHits(result.hits))
   }
 }
 
@@ -344,6 +356,10 @@ class MockApi implements SwapyApi {
   // -------------------------------------------------------------------- 物品
 
   async publishItem(input: PublishItemInput): Promise<Item> {
+    // 内容校验。客户端也会跑一遍做即时提示，但判定以服务端为准。
+    // Mock 就是「服务端」，和云函数行为一致。
+    assertPublishable(input.title, input.description)
+
     const item: Item = {
       _id: uid('it'),
       ownerId: this.me._id,

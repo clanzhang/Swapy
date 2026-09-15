@@ -1,14 +1,16 @@
 import { Button, Input, TextArea } from '@nutui/nutui-react-taro'
 import { ScrollView, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useMemo, useState } from 'react'
 
-import { Close, Plus } from '@/components/Icon'
+import { Close, Plus, Warning } from '@/components/Icon'
 import CategoryIcon from '@/components/CategoryIcon'
 import ItemImage from '@/components/ItemImage'
 import { CATEGORIES, CONDITIONS, MAX_ITEM_IMAGES, PRICE_RANGES, THEME } from '@/constants'
 import { api } from '@/services'
 import type { Category, Condition, PriceRange } from '@/types'
+import { describeHits, moderateItem } from '@/utils/moderation'
+import type { ModerationHit } from '@/utils/moderation'
 
 import './index.scss'
 
@@ -54,6 +56,19 @@ function ChipGroup<T extends string>({
   )
 }
 
+function ModerationNotice({ hits }: { hits: ModerationHit[] }) {
+  return (
+    <View className='notice'>
+      {hits.map((hit) => (
+        <View key={hit.category} className='notice__row'>
+          <Warning size={12} color={THEME.danger} />
+          <Text className='notice__text'>{hit.message}</Text>
+        </View>
+      ))}
+    </View>
+  )
+}
+
 function Field({
   label,
   hint,
@@ -82,6 +97,15 @@ export default function Publish() {
   const [priceRange, setPriceRange] = useState<PriceRange | null>(null)
   const [description, setDescription] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  /**
+   * 边写边提示：不要等用户填完一整屏才告诉他不行。
+   * 只提示、不阻止输入，否则改一半的字会被打断。
+   */
+  const moderation = useMemo(
+    () => moderateItem({ title, description }),
+    [title, description],
+  )
 
   const chooseImages = async () => {
     const remain = MAX_ITEM_IMAGES - images.length
@@ -117,6 +141,17 @@ export default function Publish() {
     if (!condition) return warn('选择物品成色')
     if (!priceRange) return warn('选择估值区间')
 
+    // 内容不合规：用弹窗把每一条都摆出来，而不是笼统地说「内容违规」
+    if (!moderation.ok) {
+      return void Taro.showModal({
+        title: '内容需要调整',
+        content: describeHits(moderation.hits),
+        showCancel: false,
+        confirmText: '我知道了',
+        confirmColor: '#FF6B35',
+      })
+    }
+
     setSubmitting(true)
     try {
       await api.publishItem({
@@ -130,8 +165,16 @@ export default function Publish() {
       reset()
       void Taro.showToast({ title: '发布成功', icon: 'success' })
       setTimeout(() => void Taro.switchTab({ url: '/pages/index/index' }), 900)
-    } catch {
-      warn('发布失败，请稍后重试')
+    } catch (err) {
+      // 服务端可能拦下客户端没拦到的内容（比如请求被改过）
+      const message = err instanceof Error && err.message ? err.message : '发布失败，请稍后重试'
+      void Taro.showModal({
+        title: '发布失败',
+        content: message,
+        showCancel: false,
+        confirmText: '我知道了',
+        confirmColor: '#FF6B35',
+      })
     } finally {
       setSubmitting(false)
     }
@@ -181,6 +224,7 @@ export default function Publish() {
               placeholder='例如：Switch OLED 白色 日版'
               onChange={(v) => setTitle(v)}
             />
+            {!moderation.ok && <ModerationNotice hits={moderation.hits} />}
           </Field>
 
           <Field label='品类'>
@@ -203,6 +247,7 @@ export default function Publish() {
               placeholder='说说使用情况、有无磕碰、配件是否齐全…'
               onChange={(v) => setDescription(v)}
             />
+            {!moderation.ok && <ModerationNotice hits={moderation.hits} />}
           </Field>
 
           <View className='publish__safe-area' />

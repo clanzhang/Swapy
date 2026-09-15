@@ -51,6 +51,31 @@
   font-size: 14px;
 }
 
+// ------------------------------------------------------------------ 内容提示
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: #fff1f0;
+}
+
+.notice__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.notice__text {
+  flex: 1;
+  color: #cf1322;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 // ------------------------------------------------------------------ 图片上传
 
 .uploader {

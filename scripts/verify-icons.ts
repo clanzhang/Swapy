@@ -34,6 +34,7 @@ import {
   Setting,
   Star,
   User,
+  Warning,
   ArrowUp,
 } from '@/components/Icon'
 
@@ -58,6 +59,7 @@ const ICONS = {
   Setting,
   Star,
   User,
+  Warning,
 }
 
 function step(title: string, fn: () => void) {

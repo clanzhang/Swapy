@@ -40,6 +40,7 @@ pnpm build:weapp    # 构建到 dist/
 | `pnpm verify:matching` | 匹配算法验证（12 项断言） |
 | `pnpm verify:gesture` | 滑动手势验证（12 项断言 + 参数表） |
 | `pnpm verify:quota` | 每日配额验证（10 项断言） |
+| `pnpm verify:moderation` | 发布内容校验（7 项断言，重点是「不该拦」的样例） |
 | `pnpm verify:icons` | 图标验证（渲染标签 / 样式序列化 / PNG 透明度和颜色） |
 | `pnpm verify:dist` | 产物体检（残留的 process / HTML 标签映射） |
 
@@ -97,7 +98,9 @@ assets/tab/              # TabBar 的 PNG（由 pnpm gen:tab-icons 生成，产�
   不直接调云函数或 Mock。加新能力先改 `SwapyApi` 接口，再补两份实现。
 - **匹配判定有两份**：`src/services/mock.ts` 和 `cloudfunctions/swipe/index.js`，
   改动必须同步两边。`pnpm verify:matching` 验证的是 Mock 那份。
-- **手势参数在 `src/components/SwipeCard/gesture.ts` 顶部**。改完跑
+- **发布内容规则也有两份**：`src/utils/moderation.ts` 和
+  `cloudfunctions/publishItem/moderation.js`。`pnpm verify:moderation`
+  会用同一组样例跑两边并比对，不一致直接失败。- **手势参数在 `src/components/SwipeCard/gesture.ts` 顶部**。改完跑
   `pnpm verify:gesture`，它会打印一张行为表，不用通真机。
 - **配额规则在 `src/utils/quota.ts` 和 `cloudfunctions/{swipe,getCards}/quota.js`**。
   每日上限和刷新整点是常量，改的时候三处要对齐。**判定只在服务端做**：

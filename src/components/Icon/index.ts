@@ -41,5 +41,6 @@ export { default as Plus } from '@nutui/icons-react-taro/dist/es/icons/Plus'
 export { default as Setting } from '@nutui/icons-react-taro/dist/es/icons/Setting'
 export { default as Star } from '@nutui/icons-react-taro/dist/es/icons/Star'
 export { default as User } from '@nutui/icons-react-taro/dist/es/icons/User'
+export { default as Warning } from '@nutui/icons-react-taro/dist/es/icons/Warning'
 
 export type { NutIconProps } from '@nutui/icons-react-taro/dist/es/icons/ArrowDown'

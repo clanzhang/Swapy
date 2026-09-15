@@ -6,6 +6,13 @@ const db = cloud.database()
 const items = db.collection('items')
 const users = db.collection('users')
 
+const {
+  describeHits,
+  moderateItem,
+  secCheckImages,
+  secCheckText,
+} = require('./moderation')
+
 const CATEGORIES = ['digital', 'book', 'toy', 'instrument', 'sport']
 const CONDITIONS = ['new', '95', '90', '80']
 const PRICE_RANGES = ['0-50', '50-200', '200-500', '500-2000']
@@ -36,6 +43,21 @@ exports.main = async (event = {}) => {
   if (!CATEGORIES.includes(category)) return { ok: false, message: '品类不合法' }
   if (!CONDITIONS.includes(condition)) return { ok: false, message: '成色不合法' }
   if (!PRICE_RANGES.includes(priceRange)) return { ok: false, message: '估值区间不合法' }
+
+  // 内容校验：本地规则先跑（快、免费），过了再过微信内容安全接口
+  const verdict = moderateItem({ title, description })
+  if (!verdict.ok) {
+    return { ok: false, message: describeHits(verdict.hits) }
+  }
+
+  const textRisk = await secCheckText(cloud, {
+    content: `${title} ${description || ''}`,
+    openid: OPENID,
+  })
+  if (textRisk) return { ok: false, message: textRisk }
+
+  const imageRisk = await secCheckImages(cloud, images)
+  if (imageRisk) return { ok: false, message: imageRisk }
 
   const doc = {
     ownerId: me._id,
