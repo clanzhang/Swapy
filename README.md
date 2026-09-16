@@ -43,6 +43,7 @@ pnpm build:weapp    # 构建到 dist/
 | `pnpm verify` | 下面全部一起跑 |
 | `pnpm verify:matching` | 匹配算法验证（14 项断言，含分页不漏卡） |
 | `pnpm verify:store` | deckStore 状态机验证（5 项断言，含并发与失败恢复） |
+| `pnpm verify:chat` | 聊天验证（9 项：去重、分页、时间戳规则） |
 | `pnpm verify:motion` | 动画性能验证（4 项，防弹窗卡屏回归） |
 | `pnpm verify:user` | 登录注册验证（8 项断言，含 isNew 与城市为空） |
 | `pnpm verify:gesture` | 滑动手势验证（12 项断言 + 参数表） |

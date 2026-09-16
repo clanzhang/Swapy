@@ -1,6 +1,9 @@
 .chat {
   height: 100vh;
   overflow: hidden;
+  // 键盘弹起时由页面自己上推（输入框设了 adjustPosition={false}），
+  // 这样消息列表也会跟着缩，而不是被键盘盖住
+  transition: padding-bottom 200ms ease-out;
 }
 
 // ------------------------------------------------------------------ 顶部标的物
@@ -28,7 +31,7 @@
   height: 34px;
   overflow: hidden;
   border-radius: 9px;
-  background: $bg;
+  background: $card;
 }
 
 .chat__banner-label {
@@ -39,7 +42,7 @@
 
 .chat__banner-swap {
   flex: none;
-  color: $brand;
+  color: $sage;
   font-size: 14px;
 }
 
@@ -48,10 +51,14 @@
 .chat__list {
   flex: 1;
   min-height: 0;
-  }
+}
+
+.chat__inner {
+  padding: 0 14px;
+}
 
 .chat__tip {
-  padding: 10px 0 14px;
+  padding: 8px 0;
   color: $text-weak;
   font-size: 10px;
   text-align: center;
@@ -61,11 +68,33 @@
   height: 12px;
 }
 
+// ------------------------------------------------------------------ 空状态
+
+.chat__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 20px;
+}
+
+.chat__empty-emoji {
+  font-size: 40px;
+  line-height: 1;
+}
+
+.chat__empty-text {
+  margin-top: 12px;
+  color: $text-sub;
+  font-size: 13px;
+}
+
+// ------------------------------------------------------------------ 气泡
+
 .bubble-row {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 4px;
 }
 
 .bubble-row--mine {
@@ -77,13 +106,22 @@
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
+  overflow: hidden;
   border-radius: 50%;
   background: $subtle;
-  color: $text-sub;
+}
+
+.bubble-avatar__img {
+  width: 100%;
+  height: 100%;
+}
+
+.bubble-avatar__text {
+  color: $sage;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .bubble {
@@ -114,30 +152,56 @@
   color: $bg;
 }
 
+// 图片消息缩略图：规范 200rpx
 .bubble__image {
-  width: 160px;
+  width: 100px;
+  height: 100px;
   border-radius: 10px;
 }
 
-.bubble__time {
-  margin-top: 4px;
-  color: $text-weak;
-  font-size: 9px;
-  text-align: right;
+// ------------------------------------------------------------------ 发送失败
+
+.bubble__retry {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: $red;
 }
 
-.bubble--mine .bubble__time {
-  color: rgba(254, 253, 252, 0.7);
+.bubble__retry-icon {
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+// ------------------------------------------------------------------ 时间戳
+
+.bubble-time {
+  margin: 2px 0 12px 40px;
+  color: $text-weak;
+  font-size: 10px;
+}
+
+.bubble-time--mine {
+  margin: 2px 40px 12px 0;
+  text-align: right;
 }
 
 // ------------------------------------------------------------------ 输入栏
 
 .chat__bar {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 8px;
   padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
-  border-top: 1px solid $border;
+  border-top: 1px solid $divider;
   background: $card;
 }
 
@@ -146,13 +210,10 @@
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: $subtle;
-  color: $accent;
-  font-size: 20px;
-  line-height: 1;
 }
 
 .chat__input {
@@ -181,8 +242,4 @@
 .chat__send--on {
   background: $brand;
   color: $bg;
-}
-
-.chat__inner {
-  padding: 0 14px;
 }

@@ -13,6 +13,7 @@ interface Props {
   className?: string
   style?: CSSProperties
   mode?: 'aspectFill' | 'aspectFit' | 'widthFix'
+  onClick?: () => void
 }
 
 /**
@@ -27,6 +28,7 @@ export default function ItemImage({
   className = '',
   style,
   mode = 'aspectFill',
+  onClick,
 }: Props) {
   const isPlaceholder = !src || src.startsWith('seed://')
 
@@ -41,11 +43,20 @@ export default function ItemImage({
           }, 70%, 78%) 100%)`,
           ...style,
         }}
+        onClick={onClick}
       >
         <Text className='item-image__emoji'>{emoji}</Text>
       </View>
     )
   }
 
-  return <Image className={`item-image ${className}`} style={style} src={src} mode={mode} />
+  return (
+    <Image
+      className={`item-image ${className}`}
+      style={style}
+      src={src}
+      mode={mode}
+      onClick={onClick}
+    />
+  )
 }

@@ -52,8 +52,11 @@ exports.main = async (event = {}) => {
   }
 
   const res = await messages.add({ data: doc })
+  const message = { _id: res._id, ...doc }
   // matches 上留个时间戳，用于会话列表排序
   await matches.doc(matchId).update({ data: { lastMessageAt: now } })
 
-  return { ok: true, data: { success: true, messageId: res._id } }
+  // 多回传一份完整消息：客户端要先乐观渲染，再拿真实 _id 把临时那条替换掉，
+  // 这样 watch 推来同一条时才能按 _id 去重
+  return { ok: true, data: { success: true, messageId: res._id, message } }
 }

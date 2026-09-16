@@ -68,6 +68,9 @@ export interface Match {
   lastMessageAt: number
 }
 
+/** 消息的发送状态。只有本地的「乐观渲染」需要它，服务端不存这个字段。 */
+export type MessageStatus = 'sending' | 'sent' | 'failed'
+
 /** 聊天消息。存在独立的 messages 集合里，不嵌在 matches 文档中。 */
 export interface ChatMessage {
   _id: string
@@ -190,6 +193,21 @@ export interface SendMessageParams {
 export interface SendMessageResult {
   success: boolean
   messageId?: string
+  /**
+   * 规格外：回传完整消息。
+   *
+   * 界面是「先本地渲染、再等服务端确认」的乐观更新，拿到真实 _id 之后
+   * 才能把那条临时消息替换掉 —— 否则 watch 推来的同一条消息没法按 _id 去重。
+   */
+  message?: ChatMessage
+}
+
+/**
+ * 界面上用的消息 = 服务端字段 + 本地发送状态。
+ * 发送失败的消息并没有落库，随时可能被丢弃或重试。
+ */
+export interface LocalMessage extends ChatMessage {
+  status: MessageStatus
 }
 
 /** getChatHistory */

@@ -27,6 +27,7 @@ export { default as ArrowDown } from '@nutui/icons-react-taro/dist/es/icons/Arro
 export { default as ArrowLeft } from '@nutui/icons-react-taro/dist/es/icons/ArrowLeft'
 export { default as ArrowUp } from '@nutui/icons-react-taro/dist/es/icons/ArrowUp'
 export { default as Book } from '@nutui/icons-react-taro/dist/es/icons/Book'
+export { default as Camera } from '@nutui/icons-react-taro/dist/es/icons/Camera'
 export { default as Close } from '@nutui/icons-react-taro/dist/es/icons/Close'
 export { default as FaceMild } from '@nutui/icons-react-taro/dist/es/icons/FaceMild'
 export { default as Gift } from '@nutui/icons-react-taro/dist/es/icons/Gift'

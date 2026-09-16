@@ -54,6 +54,7 @@
 | `pnpm verify:dist` | 残留的 `process.*`；产物里有 HTML 标签但没启用 html 插件；scroll-view 自身带 padding |
 | `pnpm verify:icons` | 图标渲染成 `<i>`；`-webkitMask` 没被转成合法 CSS；PNG 带白底 |
 | `pnpm verify:matching` | 匹配规则写错；分页漏卡；种子数据被改到「怎么点都不匹配」 |
+| `pnpm verify:chat` | 聊天消息去重失效、分页重复或倒序、时间戳规则写错 |
 | `pnpm verify:motion` | 弹窗又用「挂载即播」的 keyframes、两个动画重叠、卡片没 memo |
 | `pnpm verify:user` | 登录状态写错（isNew 永远为 true）、新用户没城市导致首页空白 |
 | `pnpm verify:store` | 牌堆状态机写错：重复扣额度、过期响应污染牌堆、失败后不回滚 |

@@ -506,7 +506,7 @@ class MockApi implements SwapyApi {
     this.emit(message)
     this.maybeAutoReply(matchId)
 
-    return { success: true, messageId: message._id }
+    return { success: true, messageId: message._id, message }
   }
 
   private emit(msg: ChatMessage) {
