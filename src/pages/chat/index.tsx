@@ -51,7 +51,16 @@ export default function Chat() {
     setScrollTop(value + tickRef.current * 0.01)
   }, [])
 
-  const scrollToBottom = useCallback(() => scrollTo(BOTTOM), [scrollTo])
+  /**
+   * 滚到底。
+   *
+   * **必须等这一帧渲染完再滚** —— setMessages 之后立刻设 scrollTop 的话，
+   * ScrollView 里还是旧内容，scrollTop 会被夹到旧的最大值，
+   * 结果是「新消息进来了但列表没滚到底」，新消息还露在下面看不见。
+   */
+  const scrollToBottom = useCallback(() => {
+    setTimeout(() => scrollTo(BOTTOM), 60)
+  }, [scrollTo])
 
   // ------------------------------------------------------------ 历史消息
 
@@ -129,13 +138,17 @@ export default function Chat() {
 
   // ------------------------------------------------------------ 键盘
 
+  // 拿不到键盘高度事件就只能靠系统自己顶 —— 否则输入框会被键盘埋掉
+  const canTrackKeyboard = typeof Taro.onKeyboardHeightChange === 'function'
+
   useEffect(() => {
-    // 输入框设了 adjustPosition={false}，页面自己上推：
-    // 这样消息列表也能跟着缩，而不是被键盘盖住
+    if (!canTrackKeyboard) return
+    // 输入框设了 adjustPosition={false}，页面自己按键盘高度上推：
+    // 这样消息列表也会跟着缩，而不是被键盘盖住
     const handler = (res: { height: number }) => setKeyboardHeight(res.height)
-    Taro.onKeyboardHeightChange?.(handler)
+    Taro.onKeyboardHeightChange(handler)
     return () => Taro.offKeyboardHeightChange?.(handler)
-  }, [])
+  }, [canTrackKeyboard])
 
   // ------------------------------------------------------------ 滚动
 
@@ -386,8 +399,8 @@ export default function Chat() {
           className='chat__input'
           value={inputValue}
           confirmType='send'
-          // 关闭系统自动顶起，由页面按键盘高度自己上推
-          adjustPosition={false}
+          // 能监听到键盘高度就自己上推（消息列表会跟着缩），否则交给系统
+          adjustPosition={!canTrackKeyboard}
           placeholder='说点什么...'
           onInput={(e) => setInputValue(e.detail.value)}
           onConfirm={sendText}
