@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { Close, FaceMild, Heart } from '@/components/Icon'
 import CardStack from '@/components/CardStack'
-import CategoryFilter from '@/components/CategoryFilter'
 import ItemDetailSheet from '@/components/ItemDetailSheet'
 import MatchModal from '@/components/MatchModal'
 import ProfileGuide from '@/components/ProfileGuide'
@@ -24,11 +23,9 @@ export default function Index() {
   const cards = useDeckStore((s) => s.cards)
   const loading = useDeckStore((s) => s.loading)
   const hasMore = useDeckStore((s) => s.hasMore)
-  const categories = useDeckStore((s) => s.categories)
   const matchResult = useDeckStore((s) => s.matchResult)
   const quota = useDeckStore((s) => s.quota)
   const init = useDeckStore((s) => s.init)
-  const setCategories = useDeckStore((s) => s.setCategories)
   const commitSwipe = useDeckStore((s) => s.commitSwipe)
   const clearMatch = useDeckStore((s) => s.clearMatch)
 
@@ -127,8 +124,6 @@ export default function Index() {
         </View>
         <QuotaBadge quota={quota} />
       </View>
-
-      <CategoryFilter value={categories} onChange={(v) => void setCategories(v)} />
 
       <View className='deck-body'>
         {outOfQuota ? (

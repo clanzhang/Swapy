@@ -7,7 +7,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px 8px;
+  padding: 12px 16px 10px;
 }
 
 .deck-head__left {
@@ -30,7 +30,8 @@
 
 .deck-body {
   display: flex;
-  // 规范：卡片占屏幕 70% 高度（顶部留一点余量给后方卡片的顶边）
+  // 规范：卡片占屏幕 70% 高度。
+  // 顶部留白是给后方卡片的顶边露出来用的
   flex: none;
   height: 70vh;
   flex-direction: column;
