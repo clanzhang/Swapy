@@ -15,6 +15,12 @@
   left: 0;
   // 规范：全屏半透明遮罩（深墨色 60%）
   background: rgba(8, 9, 5, 0.6);
+  opacity: 0;
+  transition: opacity 200ms ease-out;
+}
+
+.match-modal__mask--in {
+  opacity: 1;
 }
 
 // --------------------------------------------------------------- 撒花

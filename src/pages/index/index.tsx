@@ -165,7 +165,11 @@ export default function Index() {
         )}
       </View>
 
-      {outOfQuota ? (
+      {/*
+        详情面板打开时把底部按钮藏掉 —— 面板自己有跳过/想要，
+        外面这两个圆钮留在下面只会和面板抢位置。
+      */}
+      {outOfQuota || detailCard ? (
         <View className='deck-actions-spacer' />
       ) : (
         <View className='deck-actions'>

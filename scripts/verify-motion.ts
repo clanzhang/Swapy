@@ -22,9 +22,25 @@ const read = (p: string) => fs.readFileSync(path.join(root, p), 'utf8')
 
 /** 从底部/中央弹出来的三个浮层 */
 const OVERLAYS = [
-  { name: '详情面板', tsx: 'src/components/ItemDetailSheet/index.tsx', scss: 'src/components/ItemDetailSheet/index.scss', panel: 'sheet__panel' },
-  { name: '匹配弹窗', tsx: 'src/components/MatchModal/index.tsx', scss: 'src/components/MatchModal/index.scss', panel: 'match-modal__content' },
-  { name: '完善资料引导', tsx: 'src/components/ProfileGuide/index.tsx', scss: 'src/components/ProfileGuide/index.scss', panel: 'guide__panel' },
+  {
+    name: '详情面板',
+    tsx: 'src/components/ItemDetailSheet/index.tsx',
+    scss: 'src/components/ItemDetailSheet/index.scss',
+    // 面板和遮罩都要查 —— 只查面板的话，遮罩漏改发现不了（真踩过）
+    parts: ['sheet__panel', 'sheet__mask'],
+  },
+  {
+    name: '匹配弹窗',
+    tsx: 'src/components/MatchModal/index.tsx',
+    scss: 'src/components/MatchModal/index.scss',
+    parts: ['match-modal__content', 'match-modal__mask'],
+  },
+  {
+    name: '完善资料引导',
+    tsx: 'src/components/ProfileGuide/index.tsx',
+    scss: 'src/components/ProfileGuide/index.scss',
+    parts: ['guide__panel', 'guide__mask'],
+  },
 ]
 
 function step(title: string, fn: () => void) {
@@ -51,22 +67,32 @@ function main() {
       if (!tsx.includes('useEnter')) {
         problems.push(`${o.name} 没有用 useEnter —— 动画会和首帧布局抢时间`)
       }
-      // 必须精确到面板自己的类名。
-      // 写 tsx.includes('--in') 是不行的：遮罩层的 xxx__mask--in 会把它满足，
-      // 面板退化成挂载即播也测不出来（这个坑已经踩过）
-      if (!tsx.includes(`${o.panel}--in`)) {
-        problems.push(`${o.name} 的面板没有 ${o.panel}--in 状态类`)
+
+      for (const part of o.parts) {
+        // 必须精确到元素自己的类名。
+        // 写 tsx.includes('--in') 是不行的：遮罩层的 xxx__mask--in 会把它满足，
+        // 面板退化成挂载即播也测不出来（这个坑已经踩过）
+        if (!tsx.includes(`${part}--in`)) {
+          problems.push(`${o.name} 的 ${part} 没有 --in 状态类`)
+        }
+
+        const body = rule(scss, part)
+        if (!body) {
+          problems.push(`${o.name} 找不到 ${part} 的样式`)
+          continue
+        }
+        if (/\banimation\s*:/.test(body)) {
+          problems.push(`${o.name} 的 ${part} 还在用 animation keyframes`)
+        }
+        if (!/transition\s*:/.test(body)) {
+          problems.push(`${o.name} 的 ${part} 没有 transition`)
+        }
       }
 
-      const body = rule(scss, o.panel)
-      if (/\banimation\s*:/.test(body)) {
-        problems.push(`${o.name} 的面板还在用 animation keyframes`)
-      }
-      if (!/transition\s*:/.test(body)) {
-        problems.push(`${o.name} 的面板没有 transition`)
-      }
-      if (!/will-change\s*:/.test(body)) {
-        problems.push(`${o.name} 的面板缺 will-change，动画期间会逐帧重绘`)
+      // will-change 只要求面板加上：遮罩是一层纯色，不值得单独提升合成层
+      const panel = o.parts[0]
+      if (!/will-change\s*:/.test(rule(scss, panel))) {
+        problems.push(`${o.name} 的 ${panel} 缺 will-change`)
       }
     }
 

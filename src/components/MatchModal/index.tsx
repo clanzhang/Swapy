@@ -52,7 +52,7 @@ export default function MatchModal({ match, onClose, onChat }: Props) {
 
   return (
     <View className='match-modal'>
-      <View className='match-modal__mask' onClick={onClose} />
+      <View className={`match-modal__mask ${entered ? 'match-modal__mask--in' : ''}`} onClick={onClose} />
 
       <View className='match-modal__confetti'>
         {particles.map((p) => (
