@@ -182,4 +182,55 @@ if (scrollViewOffenders.length) {
   process.exit(1)
 }
 
-console.log('✓ 产物体检通过：无残留 process 引用，HTML 标签映射已启用，scroll-view 无 padding')
+/**
+ * 闸门四：源码里用的现代 CSS 特性必须活着进到产物。
+ *
+ * 构建链路上有 postcss / autoprefixer / cssnano，理论上不会动 display:grid，
+ * 但真被吃掉的话布局会在真机上直接崩掉，而构建和类型检查都是绿的 ——
+ * 本地跑不了模拟器，只能靠比对源码和产物。
+ */
+function checkModernCssSurvives() {
+  const features = ['display: grid', 'grid-template-rows:', 'grid-template-columns:']
+  const missing = []
+
+  const walkScss = (dir, out = []) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name)
+      if (entry.isDirectory()) walkScss(full, out)
+      else if (entry.name.endsWith('.scss')) out.push(full)
+    }
+    return out
+  }
+
+  const srcDir = path.resolve(__dirname, '..', 'src')
+  const used = new Set()
+  for (const file of walkScss(srcDir)) {
+    const css = fs.readFileSync(file, 'utf8')
+    for (const f of features) {
+      if (css.includes(f)) used.add(f)
+    }
+  }
+  if (!used.size) return missing
+
+  const distCss = collectWxss(distDir)
+    .map((f) => fs.readFileSync(f, 'utf8'))
+    .join('\n')
+
+  for (const f of used) {
+    // 产物里是压缩过的，去掉空格再比
+    const needle = f.replace(/\s+/g, '')
+    if (!distCss.replace(/\s+/g, '').includes(needle)) missing.push(f)
+  }
+
+  return missing
+}
+
+const missingCss = checkModernCssSurvives()
+if (missingCss.length) {
+  console.error('\n✗ 源码里用了这些 CSS 特性，但产物里找不到：\n')
+  for (const f of missingCss) console.error(`  ${f}`)
+  console.error('\n  构建链路把它们改掉或丢掉了，真机上布局会直接崩。\n')
+  process.exit(1)
+}
+
+console.log('✓ 产物体检通过：process 引用 / HTML 标签映射 / scroll-view padding / 现代 CSS 特性')
