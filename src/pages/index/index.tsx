@@ -2,9 +2,8 @@ import { Text, View } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { Close, FaceMild, Filter, Heart } from '@/components/Icon'
+import { Close, FaceMild, Heart } from '@/components/Icon'
 import CardStack from '@/components/CardStack'
-import FilterSheet from '@/components/FilterSheet'
 import ItemDetailSheet from '@/components/ItemDetailSheet'
 import MatchModal from '@/components/MatchModal'
 import ProfileGuide from '@/components/ProfileGuide'
@@ -13,8 +12,7 @@ import type { SwipeCardHandle } from '@/components/SwipeCard'
 import { THEME } from '@/constants'
 import { useDeckStore } from '@/store/deckStore'
 import { useUserStore } from '@/store/userStore'
-import type { CardItem, Category, SwipeDirection } from '@/types'
-import { sameCategories } from '@/utils/filter'
+import type { CardItem, SwipeDirection } from '@/types'
 
 import './index.scss'
 
@@ -27,11 +25,9 @@ export default function Index() {
   const hasMore = useDeckStore((s) => s.hasMore)
   const matchResult = useDeckStore((s) => s.matchResult)
   const quota = useDeckStore((s) => s.quota)
-  const categories = useDeckStore((s) => s.categories)
   const init = useDeckStore((s) => s.init)
   const commitSwipe = useDeckStore((s) => s.commitSwipe)
   const clearMatch = useDeckStore((s) => s.clearMatch)
-  const setCategories = useDeckStore((s) => s.setCategories)
 
   const ready = useUserStore((s) => s.ready)
   const user = useUserStore((s) => s.user)
@@ -39,12 +35,6 @@ export default function Index() {
 
   const topRef = useRef<SwipeCardHandle>(null)
   const [detailCard, setDetailCard] = useState<CardItem | null>(null)
-  const [filterOpen, setFilterOpen] = useState(false)
-  /**
-   * 筛选草稿由这里持有，弹层是受控的。
-   * 每次打开都从当前生效的筛选重新种一次，取消关闭不会留下残留。
-   */
-  const [filterDraft, setFilterDraft] = useState<Category[]>([])
   /** 完善资料引导：一个会话里只弹一次，不反复骚扰 */
   const [guideVisible, setGuideVisible] = useState(false)
   const guideShownRef = useRef(false)
@@ -132,26 +122,7 @@ export default function Index() {
             {user?.city ? `${user.city} · 同城` : '全部城市'}
           </Text>
         </View>
-        <View className='deck-head__right'>
-          {/*
-            筛选入口。选中品类时按钮变实心并显示数量 ——
-            筛完如果牌堆空了，用户得有个地方看见「现在筛的是什么」并清掉，
-            否则只能对着空状态猜。
-          */}
-          <View
-            className={`deck-filter ${categories.length ? 'deck-filter--on' : ''}`}
-            onClick={() => {
-              setFilterDraft(categories)
-              setFilterOpen(true)
-            }}
-          >
-            <Filter size={16} color={categories.length ? THEME.bg : THEME.primary} />
-            <Text className='deck-filter__text'>
-              {categories.length ? `筛选 ${categories.length}` : '筛选'}
-            </Text>
-          </View>
-          <QuotaBadge quota={quota} />
-        </View>
+        <QuotaBadge quota={quota} />
       </View>
 
       <View className='deck-body'>
@@ -175,7 +146,7 @@ export default function Index() {
               </Text>
               <Text className='empty-desc'>
                 {hasMore
-                  ? '换个品类筛选，或者稍后再来看看'
+                  ? '稍后再来看看，或者发布一件自己的闲置'
                   : '发布一件自己的闲置，让更多人滑到你'}
               </Text>
               <View className='deck-empty-btn' onClick={() => void init()}>
@@ -215,19 +186,6 @@ export default function Index() {
         card={detailCard}
         onClose={() => setDetailCard(null)}
         onDecide={handleTrigger}
-      />
-
-      <FilterSheet
-        visible={filterOpen}
-        value={categories}
-        onClose={() => setFilterOpen(false)}
-        onChange={setFilterDraft}
-        onConfirm={() => {
-          setFilterOpen(false)
-          // 和当前一致就别重拉牌堆了，白让人等一次加载
-          if (sameCategories(filterDraft, categories)) return
-          void setCategories(filterDraft)
-        }}
       />
 
       <ProfileGuide visible={guideVisible} onClose={() => setGuideVisible(false)} />

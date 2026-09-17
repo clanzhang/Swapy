@@ -27,35 +27,6 @@
   color: $text-weak;
   font-size: 11px;
 }
-.deck-head__right {
-  display: flex;
-  flex: none;
-  align-items: center;
-  // margin 而不是 gap：flex 的 gap 在部分安卓 webview 上不生效
-  gap: 8px;
-}
-.deck-filter {
-  display: flex;
-  align-items: center;
-  padding: 5px 11px;
-  border: 1px solid $divider;
-  border-radius: 14px;
-  background: $card;
-  transition: background 160ms ease;
-}
-.deck-filter--on {
-  border-color: $brand;
-  background: $brand;
-}
-.deck-filter__text {
-  margin-left: 4px;
-  color: $text;
-  font-size: 12px;
-  font-weight: 500;
-}
-.deck-filter--on .deck-filter__text {
-  color: $bg;
-}
 
 .deck-body {
   display: flex;

@@ -7,17 +7,10 @@
  * 2. 弹层自己不再持有 state，改成受控：没有内部 state 就没有
  *    「被 useEffect 重置掉」这种问题的生存空间。
  */
-import type { Category } from '@/types'
-
 /**
  * 点一下标签：已选则移除，未选则追加到末尾。
  * 不改原数组 —— 原地改会让 React 认为引用没变而跳过重渲染。
  */
 export function toggleValue<T extends string>(list: T[], key: T): T[] {
   return list.includes(key) ? list.filter((c) => c !== key) : [...list, key]
-}
-
-/** 两组筛选是不是同一组（顺序无关，用于「没变就别重拉牌堆」） */
-export function sameCategories(a: Category[], b: Category[]): boolean {
-  return a.length === b.length && a.every((c) => b.includes(c))
 }

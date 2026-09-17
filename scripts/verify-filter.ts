@@ -1,5 +1,5 @@
 /**
- * 筛选弹层草稿逻辑的验证。
+ * 标签选择逻辑的验证（发布页的成色/估值，以及之前的首页品类筛选）。
  *
  * 「选中之后点不掉」本质是状态算错了，所以这里断言的是纯函数，
  * 而不是靠真机上去点。运行：pnpm verify:filter
@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict'
 
 import type { Category } from '@/types'
-import { sameCategories, toggleValue } from '@/utils/filter'
+import { toggleValue } from '@/utils/filter'
 
 async function step(title: string, fn: () => void) {
   await fn()
@@ -63,14 +63,6 @@ async function main() {
     assert.equal(list.length, ALL.length, '五个品类都该选上')
     for (const k of ALL) list = toggleValue(list, k)
     assert.deepEqual(list, [], '全部取消后应该为空')
-  })
-
-  await step('sameCategories：顺序无关，能识别出「没变」', () => {
-    assert.equal(sameCategories([], []), true)
-    assert.equal(sameCategories(['数码', '书籍'], ['书籍', '数码']), true, '顺序不同但同一组')
-    assert.equal(sameCategories(['数码'], ['数码', '书籍']), false, '长度不同')
-    assert.equal(sameCategories(['数码'], ['书籍']), false, '内容不同')
-    assert.equal(sameCategories([], ['数码']), false, '空和非空')
   })
 
   console.log('\n全部通过 ✅\n')
