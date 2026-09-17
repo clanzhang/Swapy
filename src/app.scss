@@ -1,5 +1,17 @@
 page {
   --nutui-brand-color: #{$brand};
+  /*
+    NutUI 的 primary 走的是 --nutui-color-primary-stop-1/2，默认值是它的品牌红
+    (#f53d4d -> #fa2c19)。只设 --nutui-brand-color 是没用的 ——
+    所有 type="primary" 的按钮和标签都会变成红色，和深墨绿主色打架。
+  */
+  --nutui-color-primary-stop-1: #{$brand};
+  --nutui-color-primary-stop-2: #{$brand};
+  --nutui-color-primary: #{$brand};
+  --nutui-color-primary-text: #{$bg};
+  // 标签的默认高度 14px、字号 10px 是给小角标用的，做筛选项太小
+  --nutui-tag-height: auto;
+  --nutui-tag-font-size: 13px;
 
   background: $bg;
   color: $text;

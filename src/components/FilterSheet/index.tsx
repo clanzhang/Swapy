@@ -1,41 +1,32 @@
 import { Button, Popup, Tag } from '@nutui/nutui-react-taro'
 import { Text, View } from '@tarojs/components'
-import { useEffect, useState } from 'react'
 
 import { CATEGORIES } from '@/constants'
 import type { Category } from '@/types'
+import { toggleCategory } from '@/utils/filter'
 
 import './index.scss'
 
 interface Props {
   visible: boolean
-  /** 当前生效的筛选，弹层打开时拿它做草稿的初值 */
+  /** 草稿。由父组件持有 —— 弹层自己不存 state，就没有能被重置掉的东西。 */
   value: Category[]
+  onChange: (next: Category[]) => void
   onClose: () => void
-  onConfirm: (categories: Category[]) => void
+  onConfirm: () => void
 }
 
 /**
- * 品类筛选弹层。
+ * 品类筛选弹层（受控）。
  *
- * 自己持有一份草稿（`draft`），**只有点「确认筛选」才往外提交**：
- * 点遮罩或右上角 × 关闭等于没改过。所以「打开 → 关掉」不会悄悄改掉筛选条件。
+ * 草稿由父组件持有，**只有点「确认筛选」才提交**：
+ * 点遮罩或右上角 × 关闭等于没改过。
+ *
+ * 这里刻意不放 useState/useEffect —— 之前内部存了一份 draft 并用
+ * useEffect 在打开时种值，是「选中之后点不掉」最可能的来源。
+ * 受控组件没有内部 state，就不可能被重置。
  */
-export default function FilterSheet({ visible, value, onClose, onConfirm }: Props) {
-  const [draft, setDraft] = useState<Category[]>(value)
-
-  // 每次打开都从当前生效的筛选重新种一次草稿，
-  // 否则上次取消掉的选择会残留在里面
-  useEffect(() => {
-    if (visible) setDraft(value)
-  }, [visible, value])
-
-  const toggle = (key: Category) => {
-    setDraft((prev) => (prev.includes(key) ? prev.filter((c) => c !== key) : [...prev, key]))
-  }
-
-  const reset = () => setDraft([])
-
+export default function FilterSheet({ visible, value, onChange, onClose, onConfirm }: Props) {
   return (
     <Popup
       visible={visible}
@@ -47,13 +38,10 @@ export default function FilterSheet({ visible, value, onClose, onConfirm }: Prop
       duration={300}
       closeOnOverlayClick
       onClose={onClose}
-      // 毛玻璃做在自带遮罩上：单独再盖一层 Overlay 会和它叠起来，
-      // 颜色互相盖，效果不好预测。
-      //
+      // 毛玻璃做在自带遮罩上（overlayClassName），不再叠第二层 Overlay：
+      // 两层遮罩颜色会互相盖，效果不好预测。
       // 样式写在 scss 里而不是 overlayStyle 行内对象里 —— 行内对象的 camelCase
-      // 要靠 Taro 转成 kebab-case 才生效，这里不想赌。走 scss 还能让
-      // autoprefixer 自动补 -webkit- 前缀。
-      // 不支持 backdrop-filter 的机型退化成普通深色遮罩，不影响使用。
+      // 要靠 Taro 转成 kebab-case 才生效，走 scss 还能让 autoprefixer 补 -webkit- 前缀。
       overlayClassName='filter-sheet__overlay'
     >
       <View className='filter-sheet'>
@@ -61,32 +49,42 @@ export default function FilterSheet({ visible, value, onClose, onConfirm }: Prop
 
         <View className='filter-sheet__head'>
           <Text className='filter-sheet__title'>筛选</Text>
-          {draft.length > 0 && (
-            <View className='filter-sheet__reset' onClick={reset}>
+          {value.length > 0 && (
+            <View className='filter-sheet__reset' onClick={() => onChange([])}>
               <Text>清空</Text>
             </View>
           )}
         </View>
 
         <View className='filter-sheet__group'>
-          <Text className='filter-sheet__label'>品类</Text>
+          <View className='filter-sheet__group-head'>
+            <Text className='filter-sheet__label'>品类</Text>
+            <Text className='filter-sheet__hint'>再点一下取消选择</Text>
+          </View>
+
           {/* NutUI 这个版本没有 Flex 组件，标签换行直接用 flex-wrap */}
           <View className='filter-sheet__tags'>
             {CATEGORIES.map((c) => {
-              const on = draft.includes(c.key)
+              const on = value.includes(c.key)
               return (
-                <View key={c.key} className='filter-sheet__tag' onClick={() => toggle(c.key)}>
-                  <Tag type={on ? 'primary' : 'default'} plain={!on}>
-                    {c.emoji} {c.key}
-                  </Tag>
-                </View>
+                // onClick 直接挂在 Tag 上（它自己的 props 里就有），
+                // 不套一层 View 去接冒泡 —— 少一层就少一处会失效的地方
+                <Tag
+                  key={c.key}
+                  className={`filter-sheet__tag ${on ? 'filter-sheet__tag--on' : ''}`}
+                  type={on ? 'primary' : 'default'}
+                  plain={!on}
+                  onClick={() => onChange(toggleCategory(value, c.key))}
+                >
+                  {c.emoji} {c.key}
+                </Tag>
               )
             })}
           </View>
         </View>
 
         <View className='filter-sheet__footer'>
-          <Button type='primary' block shape='round' onClick={() => onConfirm(draft)}>
+          <Button type='primary' block shape='round' onClick={onConfirm}>
             确认筛选
           </Button>
         </View>

@@ -475,9 +475,24 @@ class MockApi implements SwapyApi {
    */
   async getChatHistory(params: GetChatHistoryParams): Promise<GetChatHistoryResult> {
     const page = Math.max(1, Number(params.page) || 1)
+
+    /*
+      排序必须是**全序**，只按 createdAt 排是不够的。
+
+      createdAt 是毫秒精度，同一毫秒内连发多条时全都相等。sort 对相等元素
+      返回 0，V8 是稳定排序，于是保持**插入顺序（旧在前）**，
+      再 slice(0, 50) 取到的就是「最旧的 50 条」当成「第 1 页 = 最新」——
+      分页整个反过来，刚发的消息掉进第 2 页。
+
+      所以次级按插入下标倒序：数组下标就是插入顺序，越大越新。
+      （不能用 _id 代替：uid 里的 seq 是 36 进制，跨位宽后字典序会断，
+        '10' < '2'，排出来不是插入顺序。）
+    */
     const all = this.db.messages
-      .filter((m) => m.matchId === params.matchId)
-      .sort((a, b) => b.createdAt - a.createdAt)
+      .map((m, i) => ({ m, i }))
+      .filter(({ m }) => m.matchId === params.matchId)
+      .sort((a, b) => b.m.createdAt - a.m.createdAt || b.i - a.i)
+      .map(({ m }) => m)
 
     const slice = all.slice((page - 1) * CHAT_PAGE_SIZE, page * CHAT_PAGE_SIZE)
     return { success: true, messages: slice.reverse() }

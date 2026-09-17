@@ -14,6 +14,7 @@ import { THEME } from '@/constants'
 import { useDeckStore } from '@/store/deckStore'
 import { useUserStore } from '@/store/userStore'
 import type { CardItem, Category, SwipeDirection } from '@/types'
+import { sameCategories } from '@/utils/filter'
 
 import './index.scss'
 
@@ -39,6 +40,11 @@ export default function Index() {
   const topRef = useRef<SwipeCardHandle>(null)
   const [detailCard, setDetailCard] = useState<CardItem | null>(null)
   const [filterOpen, setFilterOpen] = useState(false)
+  /**
+   * 筛选草稿由这里持有，弹层是受控的。
+   * 每次打开都从当前生效的筛选重新种一次，取消关闭不会留下残留。
+   */
+  const [filterDraft, setFilterDraft] = useState<Category[]>([])
   /** 完善资料引导：一个会话里只弹一次，不反复骚扰 */
   const [guideVisible, setGuideVisible] = useState(false)
   const guideShownRef = useRef(false)
@@ -134,7 +140,10 @@ export default function Index() {
           */}
           <View
             className={`deck-filter ${categories.length ? 'deck-filter--on' : ''}`}
-            onClick={() => setFilterOpen(true)}
+            onClick={() => {
+              setFilterDraft(categories)
+              setFilterOpen(true)
+            }}
           >
             <Filter size={16} color={categories.length ? THEME.bg : THEME.primary} />
             <Text className='deck-filter__text'>
@@ -212,11 +221,12 @@ export default function Index() {
         visible={filterOpen}
         value={categories}
         onClose={() => setFilterOpen(false)}
-        onConfirm={(next: Category[]) => {
+        onChange={setFilterDraft}
+        onConfirm={() => {
           setFilterOpen(false)
           // 和当前一致就别重拉牌堆了，白让人等一次加载
-          if (next.length === categories.length && next.every((c) => categories.includes(c))) return
-          void setCategories(next)
+          if (sameCategories(filterDraft, categories)) return
+          void setCategories(filterDraft)
         }}
       />
 

@@ -17,7 +17,9 @@ const PAGE_SIZE = 50
  * 入参：{ matchId, page = 1 }
  * 出参：{ success, messages[] }
  *
- * 按 createdAt 倒序取一页（page=1 就是最近 50 条），
+ * 按 (createdAt, _id) 倒序取一页（page=1 就是最近 50 条），
+ * 两个字段一起排是为了拿到全序 —— 只按 createdAt 的话，
+ * 同毫秒的消息在翻页时可能重复或漏掉。
  * 再翻转为时间正序返回 —— 页面拿到就能直接渲染，往上翻页用 page+1。
  */
 exports.main = async (event = {}) => {
@@ -43,6 +45,9 @@ exports.main = async (event = {}) => {
   const res = await messages
     .where({ matchId })
     .orderBy('createdAt', 'desc')
+    // 次级排序不能省：createdAt 是毫秒精度，同一毫秒内的多条记录相对顺序
+    // 不确定，skip/limit 翻页会重复或漏掉消息。_id 唯一，加上它就是全序。
+    .orderBy('_id', 'desc')
     .skip((page - 1) * PAGE_SIZE)
     .limit(PAGE_SIZE)
     .get()

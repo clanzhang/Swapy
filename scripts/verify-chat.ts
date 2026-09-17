@@ -145,6 +145,50 @@ async function main() {
     assert.equal(res.success, false, '不存在的会话不该发得出去')
   })
 
+  await step('同一毫秒内连发的消息，最新的一条必须在第 1 页', async () => {
+    /*
+      把时钟冻住，强制所有消息的 createdAt 完全相等 ——
+      不冻的话这条断言靠运气（每条耗时偶然超过 1ms 就测不出来了）。
+
+      相等时如果排序不是全序，sort 会保持插入顺序（旧在前），
+      slice(0, 50) 就把「最旧的 50 条」当成「第 1 页 = 最新」，
+      分页整个反过来，刚发的消息掉进第 2 页。
+    */
+    const realNow = Date.now
+    // 定在「现在往后一点」：必须比前面所有消息都新。
+    // 这条放最后跑，所以不会影响后面任何断言。
+    Date.now = () => realNow() + 60_000
+    let last: ChatMessage | undefined
+    try {
+      for (let i = 0; i < CHAT_PAGE_SIZE + 5; i += 1) {
+        // eslint-disable-next-line no-await-in-loop
+        const res = await api.sendMessage({ matchId, content: `连发 ${i}`, type: 'text' })
+        last = res.message
+      }
+    } finally {
+      Date.now = realNow
+    }
+
+    const { messages } = await api.getChatHistory({ matchId, page: 1 })
+    assert.equal(messages.length, CHAT_PAGE_SIZE, `第 1 页应该是 ${CHAT_PAGE_SIZE} 条`)
+    assert.ok(
+      messages.some((m) => m._id === last!._id),
+      '刚发的消息必须在第 1 页里 —— 不在的话说明排序不是全序，分页反了',
+    )
+    assert.equal(
+      messages[messages.length - 1]._id,
+      last!._id,
+      '最新的一条应该是第 1 页的最后一条',
+    )
+
+    // 同一毫秒内也要保持插入顺序，不能乱
+    const burst = messages.filter((m) => m.content.startsWith('连发 '))
+    const seq = burst.map((m) => Number(m.content.replace('连发 ', '')))
+    for (let i = 1; i < seq.length; i += 1) {
+      assert.ok(seq[i - 1] < seq[i], `同一毫秒内连发的顺序乱了：${seq.join(',')}`)
+    }
+  })
+
   await step('时间戳规则：超过 5 分钟才单独显示', () => {
     const base = { createdAt: 1_000_000_000_000 }
     const after = (ms: number) => ({ createdAt: base.createdAt + ms })
