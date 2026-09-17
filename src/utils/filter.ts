@@ -13,7 +13,7 @@ import type { Category } from '@/types'
  * 点一下标签：已选则移除，未选则追加到末尾。
  * 不改原数组 —— 原地改会让 React 认为引用没变而跳过重渲染。
  */
-export function toggleCategory(list: Category[], key: Category): Category[] {
+export function toggleValue<T extends string>(list: T[], key: T): T[] {
   return list.includes(key) ? list.filter((c) => c !== key) : [...list, key]
 }
 

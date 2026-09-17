@@ -12,6 +12,7 @@ import '@nutui/nutui-react-taro/dist/esm/input/style/style.css'
 import '@nutui/nutui-react-taro/dist/esm/textarea/style/style.css'
 import '@nutui/nutui-react-taro/dist/esm/popup/style/style.css'
 import '@nutui/nutui-react-taro/dist/esm/tag/style/style.css'
+import '@nutui/nutui-react-taro/dist/esm/uploader/style/style.css'
 // NutUI 图标的基础样式（7.4KB）。图标本身是 useSvg 模式：
 // 内联 SVG + CSS mask，不需要那份 189KB 的 iconfont 样式。
 import '@nutui/icons-react-taro/dist/style_icon.css'

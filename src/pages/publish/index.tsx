@@ -1,19 +1,12 @@
-import { Button, Input, TextArea } from '@nutui/nutui-react-taro'
+import { Button, Input, TextArea, Uploader } from '@nutui/nutui-react-taro'
+import type { FileItem } from '@nutui/nutui-react-taro'
 import { ScrollView, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { type ReactNode, useMemo, useState } from 'react'
+import { type ReactNode, useMemo, useRef, useState } from 'react'
 
-import { Close, Plus, Warning } from '@/components/Icon'
-import CategoryIcon from '@/components/CategoryIcon'
-import ItemImage from '@/components/ItemImage'
-import {
-  CATEGORIES,
-  CATEGORY_MAP,
-  CONDITIONS,
-  MAX_ITEM_IMAGES,
-  PRICE_RANGES,
-  THEME,
-} from '@/constants'
+import { Plus, Warning } from '@/components/Icon'
+import TagPicker from '@/components/TagPicker'
+import { CONDITIONS, MAX_ITEM_IMAGES, PRICE_RANGES, THEME } from '@/constants'
 import { itemService } from '@/services'
 import type { Category, Condition, PriceRange } from '@/types'
 import { describeHits, moderateItem } from '@/utils/moderation'
@@ -21,47 +14,14 @@ import type { ModerationHit } from '@/utils/moderation'
 
 import './index.scss'
 
+/**
+ * 发布只支持书籍。
+ * 后续扩品类时：把品类选择器加回来，这里换成 state（CATEGORIES 常量还在）。
+ */
+const PUBLISH_CATEGORY: Category = '书籍'
+
 function warn(title: string) {
   void Taro.showToast({ title, icon: 'none' })
-}
-
-interface ChipOption<T extends string> {
-  key: T
-  /** 不传就显示 key 本身（品类/成色的 key 已经是中文） */
-  label?: string
-}
-
-function ChipGroup<T extends string>({
-  options,
-  value,
-  onChange,
-  withIcon = false,
-}: {
-  options: ChipOption<T>[]
-  value: T | null
-  onChange: (next: T) => void
-  withIcon?: boolean
-}) {
-  return (
-    <View className='chip-group'>
-      {options.map((option) => (
-        <View
-          key={option.key}
-          className={`chip ${value === option.key ? 'chip--on' : ''}`}
-          onClick={() => onChange(option.key)}
-        >
-          {withIcon && (
-            <CategoryIcon
-              category={option.key as unknown as Category}
-              size={13}
-              color={value === option.key ? THEME.primary : THEME.textSub}
-            />
-          )}
-          <Text className='chip__text'>{option.label ?? option.key}</Text>
-        </View>
-      ))}
-    </View>
-  )
 }
 
 function ModerationNotice({ hits }: { hits: ModerationHit[] }) {
@@ -110,55 +70,85 @@ function Field({
 }
 
 export default function Publish() {
-  const [images, setImages] = useState<string[]>([])
+  const [files, setFiles] = useState<FileItem[]>([])
   const [title, setTitle] = useState('')
-  const [category, setCategory] = useState<Category | null>(null)
   const [condition, setCondition] = useState<Condition | null>(null)
   const [priceRange, setPriceRange] = useState<PriceRange | null>(null)
   const [description, setDescription] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
+  /** 正在上传的 uid。防止同一张图被重复上传（onChange 可能被触发多次）。 */
+  const uploadingRef = useRef<Set<string>>(new Set())
+
   /**
    * 边写边提示：不要等用户填完一整屏才告诉他不行。
    * 只提示、不阻止输入，否则改一半的字会被打断。
    */
-  const moderation = useMemo(
-    () => moderateItem({ title, description }),
-    [title, description],
-  )
+  const moderation = useMemo(() => moderateItem({ title, description }), [title, description])
 
-  const chooseImages = async () => {
-    const remain = MAX_ITEM_IMAGES - images.length
-    if (remain <= 0) {
-      warn(`最多上传 ${MAX_ITEM_IMAGES} 张`)
-      return
-    }
+  const patch = (uid: string, next: Partial<FileItem>) =>
+    setFiles((prev) => prev.map((f) => (f.uid === uid ? { ...f, ...next } : f)))
+
+  /** 选完立刻传云存储拿 fileID，而不是攒到提交时才传 */
+  const uploadOne = async (file: FileItem) => {
+    const src = file.path
+    if (!src) return
+    uploadingRef.current.add(file.uid)
     try {
-      const res = await Taro.chooseImage({
-        count: remain,
-        sizeType: ['compressed'],
-        sourceType: ['album', 'camera'],
-      })
-      setImages((prev) => [...prev, ...res.tempFilePaths].slice(0, MAX_ITEM_IMAGES))
+      const [fileId] = await itemService.uploadImages([src])
+      // status 置成 success，NutUI 才会把盖在缩略图上的进度层收掉
+      patch(file.uid, { url: fileId, status: 'success' })
     } catch {
-      // 用户取消选择，不需要提示
+      patch(file.uid, { status: 'error', message: '上传失败' })
+    } finally {
+      uploadingRef.current.delete(file.uid)
     }
   }
 
+  const handleFiles = (next: FileItem[]) => {
+    /*
+      NutUI 的 readFile 只设了 path，**没有设 url**，而缩略图的渲染条件是
+      `item.url` 存在 —— 不回填的话选完图是一片空白。所以先把本地路径塞进 url
+      （本地路径也能直接被 previewImage 预览），上传完再换成 fileID。
+    */
+    const prepared = next.map((f) =>
+      f.url ? f : { ...f, url: f.path, status: 'uploading' as const, message: '上传中' },
+    )
+    setFiles(prepared)
+
+    // 只传这一批里新加的；已有 url 的是老图或已传完的
+    for (const f of prepared) {
+      if (f.status !== 'success' && !uploadingRef.current.has(f.uid)) void uploadOne(f)
+    }
+  }
+
+  const preview = (file: FileItem) => {
+    const urls = files.map((f) => f.url || f.path || '').filter(Boolean)
+    if (!urls.length) return
+    const at = Math.max(0, files.findIndex((f) => f.uid === file.uid))
+    void Taro.previewImage({ urls, current: urls[at] })
+  }
+
   const reset = () => {
-    setImages([])
+    setFiles([])
     setTitle('')
-    setCategory(null)
     setCondition(null)
     setPriceRange(null)
     setDescription('')
   }
 
   const submit = async () => {
-    if (!images.length) return warn('至少上传一张图片')
-    if (!title.trim()) return warn('给物品起个名字吧')
-    if (!category) return warn('选择物品品类')
-    if (!condition) return warn('选择物品成色')
+    // loading 态不一定拦得住点击，自己再挡一道，避免重复提交
+    if (submitting) return
+
+    if (!files.length) return warn('至少上传一张图片')
+    if (files.some((f) => f.status !== 'success')) {
+      return warn(
+        files.some((f) => f.status === 'error') ? '有图片上传失败，删掉重选' : '图片还在上传中',
+      )
+    }
+    if (!title.trim()) return warn('给这本书起个名字吧')
+    if (!condition) return warn('选择成色')
     if (!priceRange) return warn('选择估值区间')
 
     // 内容不合规：用弹窗把每一条都摆出来，而不是笼统地说「内容违规」
@@ -175,10 +165,10 @@ export default function Publish() {
     setSubmitting(true)
     try {
       const res = await itemService.publishItem({
-        // 图片先传云存储拿 fileID，再把 fileID 交给云函数
-        imageFileIds: await itemService.uploadImages(images),
+        // 图片在选完那一刻就已经传好了，这里直接用 fileID
+        imageFileIds: files.map((f) => f.url!).filter(Boolean),
         title: title.trim(),
-        category,
+        category: PUBLISH_CATEGORY,
         condition,
         priceRange,
         description: description.trim(),
@@ -197,9 +187,7 @@ export default function Publish() {
 
       reset()
       void Taro.showToast({ title: '发布成功', icon: 'success' })
-      // 切到「我的」而不是首页：刚发的东西就在「我的发布」第一条。
-      // 回首页只会看到一堆别人的卡，用户会以为「发了但没显示」。
-      setTimeout(() => void Taro.switchTab({ url: '/pages/profile/index' }), 900)
+      setTimeout(() => void Taro.switchTab({ url: '/pages/index/index' }), 900)
     } catch {
       void Taro.showModal({
         title: '发布失败',
@@ -218,48 +206,34 @@ export default function Publish() {
       <ScrollView className='publish__body' scrollY>
         {/* scroll-view 在 webview 模式下不支持 padding，只能靠内层容器 */}
         <View className='publish__inner'>
-          <Field label='物品图片' hint={`${images.length}/${MAX_ITEM_IMAGES}`}>
-            <View className='uploader'>
-              {/* 规范：第一格是虚线边框的添加按钮 */}
-              {images.length < MAX_ITEM_IMAGES && (
-                <View
-                  className='uploader__cell uploader__cell--add'
-                  onClick={() => void chooseImages()}
-                >
-                  <Plus size={22} color={THEME.sage} />
-                  <Text className='uploader__tip'>添加图片</Text>
-                </View>
-              )}
-              {images.map((src, i) => (
-                <View key={`${src}-${i}`} className='uploader__cell'>
-                  <ItemImage
-                    src={src}
-                    emoji={category ? (CATEGORY_MAP[category]?.emoji ?? '📦') : '📦'}
-                    className='uploader__img'
-                  />
-                  <View
-                    className='uploader__remove'
-                    onClick={() => setImages((prev) => prev.filter((_, idx) => idx !== i))}
-                  >
-                    <Close size={12} color='#FEFDFC' />
-                  </View>
-                  {i === 0 && (
-                    <View className='uploader__cover'>
-                      <Text>封面</Text>
-                    </View>
-                  )}
-                </View>
-              ))}
-            </View>
+          <Field label='书籍图片' hint={`${files.length}/${MAX_ITEM_IMAGES} · 第一张是封面`}>
+            <Uploader
+              className='publish__uploader'
+              value={files}
+              onChange={handleFiles}
+              // 上传自己接管：NutUI 的 Taro 版走的是 Taro.uploadFile（HTTP 端点），
+              // 而微信云存储要的是 Taro.cloud.uploadFile，两回事。
+              // autoUpload=false 让它完全不碰上传，只当选择器和网格。
+              autoUpload={false}
+              multiple
+              previewType='picture'
+              maxCount={MAX_ITEM_IMAGES}
+              deletable
+              uploadIcon={<Plus size={22} color={THEME.sage} />}
+              uploadLabel='添加图片'
+              // 规格要的是长按预览，但 Uploader 里完全没有 longpress、也没有 data-*
+              // 能定位到点的是哪一项，所以只有点击这一种可能。
+              onFileItemClick={preview}
+            />
           </Field>
 
-          <Field label='物品名称' inline>
+          <Field label='书籍名称' inline>
             <Input
               className='field__input field__input--inline'
               align='right'
               value={title}
               maxLength={30}
-              placeholder='例如：Switch OLED 白色 日版'
+              placeholder='例如：百年孤独 精装版 余华活着'
               onChange={(v) => setTitle(v)}
             />
           </Field>
@@ -269,28 +243,28 @@ export default function Publish() {
             </View>
           )}
 
-          <Field label='品类'>
-            <ChipGroup<Category> options={CATEGORIES} value={category} onChange={setCategory} withIcon />
-          </Field>
-
           <Field label='成色'>
-            <ChipGroup<Condition>
+            <TagPicker<Condition>
               options={CONDITIONS.map((c) => ({ key: c }))}
-              value={condition}
-              onChange={setCondition}
+              value={condition ? [condition] : []}
+              onChange={(next) => setCondition(next[0] ?? null)}
             />
           </Field>
 
           <Field label='估值区间' hint='只和区间有交集的物品互相推荐'>
-            <ChipGroup<PriceRange> options={PRICE_RANGES} value={priceRange} onChange={setPriceRange} />
+            <TagPicker<PriceRange>
+              options={PRICE_RANGES.map((p) => ({ key: p.key, label: p.label }))}
+              value={priceRange ? [priceRange] : []}
+              onChange={(next) => setPriceRange(next[0] ?? null)}
+            />
           </Field>
 
-          <Field label='物品描述' hint={`${description.length}/200`}>
+          <Field label='书籍描述' hint={`${description.length}/200`}>
             <TextArea
               className='field__textarea'
               value={description}
               maxLength={200}
-              placeholder='说说使用情况、有无磕碰、配件是否齐全…'
+              placeholder='说说这本书的故事，比如读了几遍、有没有笔记标注'
               onChange={(v) => setDescription(v)}
             />
           </Field>
@@ -306,6 +280,7 @@ export default function Publish() {
           size='large'
           shape='round'
           loading={submitting}
+          disabled={submitting}
           onClick={() => void submit()}
         >
           发布到换换

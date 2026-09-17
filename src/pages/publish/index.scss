@@ -104,101 +104,54 @@
 
 // ------------------------------------------------------------------ 图片上传
 
-.uploader {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
+/*
+  图片网格交给 NutUI Uploader，这里只覆盖尺寸和配色。
+  它的默认值（100px 方块、10px 间距、4px 圆角）跟项目的圆角体系对不上。
+*/
+.publish__uploader {
+  --nutui-uploader-image-width: 92px;
+  --nutui-uploader-image-height: 92px;
+  --nutui-uploader-image-border-radius: 12px;
+  --nutui-uploader-preview-margin-right: 8px;
+  --nutui-uploader-preview-margin-bottom: 8px;
+  --nutui-uploader-background: #{$bg};
 
-.uploader__cell {
-  position: relative;
-  width: 90px;
-  height: 90px;
-  overflow: hidden;
-  border-radius: 12px;
-  background: $bg;
-}
+  // 缩略图本身铺满格子
+  .nut-uploader-preview-img-c {
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+  }
 
-.uploader__img {
-  width: 100%;
-  height: 100%;
-}
+  // 右下角的删除按钮：NutUI 默认是左上角一个浅色小叉，这里改成项目里
+  // 一贯的深色底 + 暖白叉，压在右上角
+  .nut-uploader-preview .close {
+    top: 0;
+    right: 0;
+    left: auto;
+    bottom: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-bottom-left-radius: 10px;
+    border-top-right-radius: 12px;
+    background: rgba(8, 9, 5, 0.55);
+    color: $bg;
+  }
 
-.uploader__remove {
-  position: absolute;
-  top: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-bottom-left-radius: 10px;
-  background: rgba(8, 9, 5, 0.55);
-}
+  // 添加按钮：虚线描边，和原来的观感一致
+  .nut-uploader-upload {
+    border: 1px dashed rgba(95, 133, 120, 0.5);
+    background: transparent;
+  }
 
-.uploader__cover {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  padding: 1px 6px;
-  border-top-right-radius: 8px;
-  background: $brand;
-  color: $bg;
-  font-size: 10px;
-}
-
-.uploader__cell--add {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border: 1px dashed rgba(95, 133, 120, 0.5);
-  background: transparent;
-}
-
-.uploader__tip {
-  margin-top: 4px;
-  color: $text-weak;
-  font-size: 10px;
-}
-
-// ------------------------------------------------------------------ 选择项
-
-.chip-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.chip {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  height: 32px;
-  padding: 0 14px;
-  // 未选中：灰绿描边 + 灰绿文字
-  border: 1px solid rgba(95, 133, 120, 0.4);
-  border-radius: $radius-chip;
-  background: transparent;
-  color: $sage;
-  font-size: 13px;
-  transition:
-    background 160ms ease,
-    color 160ms ease,
-    border-color 160ms ease;
-}
-
-.chip__text {
-  font-size: 13px;
-}
-
-.chip--on {
-  // 选中：深墨绿实心 + 暖白文字
-  border-color: $brand;
-  background: $brand;
-  color: $bg;
-  font-weight: 500;
+  .nut-uploader-icon-tip {
+    margin-top: 4px;
+    color: $text-weak;
+    font-size: 10px;
+  }
 }
 
 // ------------------------------------------------------------------ 提交

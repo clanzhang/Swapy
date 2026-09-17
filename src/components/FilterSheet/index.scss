@@ -62,46 +62,6 @@
   font-size: 11px;
 }
 
-.filter-sheet__tags {
-  display: flex;
-  flex-wrap: wrap;
-  // 标签之间用 margin 而不是 gap —— flex 的 gap 在部分安卓 webview 上不生效
-  margin-top: 4px;
-}
-
-/*
-  标签本体是 NutUI 的 .nut-tag。它的默认值是给「小角标」用的：
-  height 只有 14px、字号 10px，做可点的筛选项太小了，全都覆盖掉。
-*/
-.filter-sheet__tag {
-  margin: 8px 8px 0 0;
-
-  &.nut-tag {
-    // 默认 14px 高 + 行内 flex，点起来太窄
-    height: auto;
-    min-height: 32px;
-    padding: 0 12px;
-    border-radius: 16px;
-    font-size: 13px;
-    line-height: 1;
-  }
-
-  // 未选中：暖白底 + 主题描边（NutUI 默认用的是 #1a1a1a 的硬黑边）
-  &.nut-tag-default.nut-tag-plain {
-    border-color: $divider;
-    background-color: $card;
-    color: $text-sub;
-  }
-}
-
-// 选中：主题深墨绿。NutUI 的 primary 是红色渐变，必须换掉
-.filter-sheet__tag--on.nut-tag {
-  background: $brand;
-  border-color: $brand;
-  color: $bg;
-  font-weight: 500;
-}
-
 .filter-sheet__footer {
   padding: 20px 16px calc(16px + env(safe-area-inset-bottom));
 }

@@ -1,0 +1,37 @@
+.tag-picker {
+  display: flex;
+  flex-wrap: wrap;
+  // 标签之间用 margin 而不是 gap —— flex 的 gap 在部分安卓 webview 上不生效
+  margin-top: -8px;
+}
+
+/*
+  标签本体是 NutUI 的 .nut-tag。它的默认值是给「小角标」用的：
+  height 只有 14px、字号 10px，做可点的选项太小了，全都覆盖掉。
+
+  注意 .nut-tag 是这个组件的根节点，所以类名和 Tag 自身必须在同一个选择器上。
+*/
+.tag-picker__tag.nut-tag {
+  height: auto;
+  min-height: 32px;
+  margin: 8px 8px 0 0;
+  padding: 0 14px;
+  border-radius: 16px;
+  font-size: 13px;
+  line-height: 1;
+}
+
+// 未选中：暖白底 + 主题描边（NutUI 默认用的是 #1a1a1a 的硬黑边）
+.tag-picker__tag.nut-tag-default.nut-tag-plain {
+  border-color: $divider;
+  background-color: $card;
+  color: $text-sub;
+}
+
+// 选中：主题深墨绿。NutUI 的 primary 是红色渐变，必须换掉
+.tag-picker__tag--on.nut-tag {
+  background: $brand;
+  border-color: $brand;
+  color: $bg;
+  font-weight: 500;
+}
