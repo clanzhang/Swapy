@@ -213,6 +213,61 @@ async function main() {
     }
   })
 
+  await step('多品类是「或」不是「与」', async () => {
+    const cards = await pool(['乐器', '潮玩'])
+    assert.ok(cards.length > 0, '两个品类一起筛应该有结果')
+
+    const picked = new Set(cards.map((c) => c.category))
+    for (const card of cards) {
+      assert.ok(
+        card.category === '乐器' || card.category === '潮玩',
+        `筛选后混入了 ${card.category}`,
+      )
+    }
+    // 写成「与」的话只可能剩下同时属于两类的物品，实际上一个都不剩
+    assert.equal(picked.size, 2, `两个品类都应该有结果，实际只有 ${[...picked].join('、')}`)
+
+    // 结果必须正好是两类之和，说明没有漏
+    const one = await pool(['乐器'])
+    const two = await pool(['潮玩'])
+    assert.equal(cards.length, one.length + two.length, '多品类结果应等于各品类之和')
+  })
+
+  await step('品类筛选不绕过同城', async () => {
+    const cards = await pool(['乐器'])
+    for (const card of cards) {
+      assert.equal(card.owner.city, '上海', `筛选后混进了非同城用户：${card.owner.city}`)
+      assert.notEqual(card.ownerId, 'u_me', '自己的物品不该出现')
+    }
+  })
+
+  await step('筛选后翻页仍然不重不漏', async () => {
+    const pageSize = 2
+    const all = await pool(['乐器', '潮玩'])
+    assert.ok(all.length > pageSize, `前置条件：池子只有 ${all.length} 张，测不出翻页`)
+
+    const seen: string[] = []
+    for (let page = 1; page <= 10; page += 1) {
+      // eslint-disable-next-line no-await-in-loop
+      const res = await api.getCards({ page, pageSize, categories: ['乐器', '潮玩'] })
+      seen.push(...res.cards.map((c) => c._id))
+      if (!res.hasMore) break
+    }
+
+    assert.equal(seen.length, all.length, '翻页拿到的总数应和一次拿完一致')
+    assert.equal(new Set(seen).size, seen.length, '翻页出现了重复卡片')
+    for (const id of all.map((c) => c._id)) {
+      assert.ok(seen.includes(id), `翻页漏掉了 ${id}`)
+    }
+  })
+
+  await step('清空筛选等于不筛（空数组和 undefined 一致）', async () => {
+    const empty = await pool([])
+    const none = await pool(undefined)
+    assert.equal(empty.length, none.length, '空数组应该等同于不传')
+    assert.ok(empty.length > (await pool(['乐器'])).length, '不筛应该比筛单品类多')
+  })
+
   await step('发布后进入自己的物品列表，但不会进自己的牌堆', async () => {
     const res = await api.publishItem({
       imageFileIds: ['/tmp/fake.jpg'],
