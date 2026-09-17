@@ -1,5 +1,5 @@
 /** 品类：只允许这五种，和云函数校验保持一致 */
-export type Category = '数码' | '书籍' | '潮玩' | '乐器' | '运动'
+export type Category = '数码' | '书籍' | '潮玩' | '乐器' | '运动' | '家具'
 
 /** 成色 */
 export type Condition = '全新' | '95新' | '9成新' | '8成新'

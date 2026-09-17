@@ -1,4 +1,4 @@
-import { Book, Gift, Microphone, Photograph, Star } from '@/components/Icon'
+import { Book, Gift, Home, Microphone, Photograph, Star } from '@/components/Icon'
 import type { Category } from '@/types'
 
 const MAP = {
@@ -8,6 +8,8 @@ const MAP = {
   // NutUI 没有 Music 图标，用 Microphone 代替「乐器」
   乐器: Microphone,
   运动: Star,
+  // NutUI 没有家具图标，Home 最接近
+  家具: Home,
 } as const
 
 interface Props {

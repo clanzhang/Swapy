@@ -9,7 +9,7 @@ const users = db.collection('users')
 const { describeHits, moderateItem, secCheckImages, secCheckText } = require('./moderation')
 
 /** 枚举白名单，和客户端 src/types 保持一致 */
-const CATEGORIES = ['数码', '书籍', '潮玩', '乐器', '运动']
+const CATEGORIES = ['数码', '书籍', '潮玩', '乐器', '运动', '家具']
 const CONDITIONS = ['全新', '95新', '9成新', '8成新']
 const PRICE_RANGES = ['0-50', '50-200', '200-500', '500-2000']
 const STATUSES = ['active', 'swapped', 'off']

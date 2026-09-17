@@ -213,6 +213,22 @@ async function main() {
     }
   })
 
+  await step('品类「家具」通了：有种子物品，且服务端认这个品类', async () => {
+    const cards = await pool(['家具'])
+    assert.ok(
+      cards.length > 0,
+      '家具应该有种子里物品 —— 没有的话演示时永远滑不到家具，发布页却让你选它',
+    )
+    for (const card of cards) {
+      assert.equal(card.category, '家具', `筛选后混入了 ${card.category}`)
+      assert.equal(card.owner.city, '上海', '新增的家具物品必须落在同城用户名下')
+      assert.ok(
+        ['200-500', '500-2000'].includes(card.priceRange),
+        '家具的估价区间必须和我的物品有交集，否则进不了牌堆',
+      )
+    }
+  })
+
   await step('多品类是「或」不是「与」', async () => {
     const cards = await pool(['乐器', '潮玩'])
     assert.ok(cards.length > 0, '两个品类一起筛应该有结果')

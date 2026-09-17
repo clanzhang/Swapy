@@ -6,19 +6,13 @@ import { type ReactNode, useMemo, useRef, useState } from 'react'
 
 import { Plus, Warning } from '@/components/Icon'
 import TagPicker from '@/components/TagPicker'
-import { CONDITIONS, MAX_ITEM_IMAGES, PRICE_RANGES, THEME } from '@/constants'
+import { CATEGORIES, CONDITIONS, MAX_ITEM_IMAGES, PRICE_RANGES, THEME } from '@/constants'
 import { itemService } from '@/services'
 import type { Category, Condition, PriceRange } from '@/types'
 import { describeHits, moderateItem } from '@/utils/moderation'
 import type { ModerationHit } from '@/utils/moderation'
 
 import './index.scss'
-
-/**
- * 发布只支持书籍。
- * 后续扩品类时：把品类选择器加回来，这里换成 state（CATEGORIES 常量还在）。
- */
-const PUBLISH_CATEGORY: Category = '书籍'
 
 function warn(title: string) {
   void Taro.showToast({ title, icon: 'none' })
@@ -72,6 +66,7 @@ function Field({
 export default function Publish() {
   const [files, setFiles] = useState<FileItem[]>([])
   const [title, setTitle] = useState('')
+  const [category, setCategory] = useState<Category | null>(null)
   const [condition, setCondition] = useState<Condition | null>(null)
   const [priceRange, setPriceRange] = useState<PriceRange | null>(null)
   const [description, setDescription] = useState('')
@@ -132,6 +127,7 @@ export default function Publish() {
   const reset = () => {
     setFiles([])
     setTitle('')
+    setCategory(null)
     setCondition(null)
     setPriceRange(null)
     setDescription('')
@@ -147,7 +143,8 @@ export default function Publish() {
         files.some((f) => f.status === 'error') ? '有图片上传失败，删掉重选' : '图片还在上传中',
       )
     }
-    if (!title.trim()) return warn('给这本书起个名字吧')
+    if (!title.trim()) return warn('给物品起个名字吧')
+    if (!category) return warn('选择品类')
     if (!condition) return warn('选择成色')
     if (!priceRange) return warn('选择估值区间')
 
@@ -168,7 +165,7 @@ export default function Publish() {
         // 图片在选完那一刻就已经传好了，这里直接用 fileID
         imageFileIds: files.map((f) => f.url!).filter(Boolean),
         title: title.trim(),
-        category: PUBLISH_CATEGORY,
+        category,
         condition,
         priceRange,
         description: description.trim(),
@@ -206,7 +203,7 @@ export default function Publish() {
       <ScrollView className='publish__body' scrollY>
         {/* scroll-view 在 webview 模式下不支持 padding，只能靠内层容器 */}
         <View className='publish__inner'>
-          <Field label='书籍图片' hint={`${files.length}/${MAX_ITEM_IMAGES} · 第一张是封面`}>
+          <Field label='物品图片' hint={`${files.length}/${MAX_ITEM_IMAGES} · 第一张是封面`}>
             <Uploader
               className='publish__uploader'
               value={files}
@@ -227,13 +224,13 @@ export default function Publish() {
             />
           </Field>
 
-          <Field label='书籍名称' inline>
+          <Field label='物品名称' inline>
             <Input
               className='field__input field__input--inline'
               align='right'
               value={title}
               maxLength={30}
-              placeholder='例如：百年孤独 精装版 余华活着'
+              placeholder='例如：Switch OLED 白色 日版'
               onChange={(v) => setTitle(v)}
             />
           </Field>
@@ -242,6 +239,14 @@ export default function Publish() {
               <ModerationNotice hits={moderation.hits} />
             </View>
           )}
+
+          <Field label='品类'>
+            <TagPicker
+              options={CATEGORIES.map((c) => ({ key: c.key, emoji: c.emoji }))}
+              value={category ? [category] : []}
+              onChange={(next) => setCategory(next[0] ?? null)}
+            />
+          </Field>
 
           <Field label='成色'>
             <TagPicker<Condition>
@@ -259,12 +264,12 @@ export default function Publish() {
             />
           </Field>
 
-          <Field label='书籍描述' hint={`${description.length}/200`}>
+          <Field label='物品描述' hint={`${description.length}/200`}>
             <TextArea
               className='field__textarea'
               value={description}
               maxLength={200}
-              placeholder='说说这本书的故事，比如读了几遍、有没有笔记标注'
+              placeholder='说说使用情况、有无磕碰、配件是否齐全…'
               onChange={(v) => setDescription(v)}
             />
           </Field>

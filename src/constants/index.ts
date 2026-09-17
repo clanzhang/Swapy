@@ -31,7 +31,8 @@ export const THEME = {
 
 /**
  * 品类。注意 key 就是存进数据库的值（中文），label 不再单独存在。
- * emoji 只用于 ItemImage 的占位图兜底，UI 上的标签图标走 CategoryIcon。
+ * emoji 用在 ItemImage 的占位图兜底和 TagPicker 的标签上；
+ * 列表/卡片里的品类徽标走 CategoryIcon。
  */
 export const CATEGORIES: { key: Category; emoji: string }[] = [
   { key: '数码', emoji: '📱' },
@@ -39,6 +40,7 @@ export const CATEGORIES: { key: Category; emoji: string }[] = [
   { key: '潮玩', emoji: '🧸' },
   { key: '乐器', emoji: '🎸' },
   { key: '运动', emoji: '🏀' },
+  { key: '家具', emoji: '🛋️' },
 ]
 
 export const CONDITIONS: Condition[] = ['全新', '95新', '9成新', '8成新']
