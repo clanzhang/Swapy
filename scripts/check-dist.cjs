@@ -233,4 +233,70 @@ if (missingCss.length) {
   process.exit(1)
 }
 
-console.log('✓ 产物体检通过：process 引用 / HTML 标签映射 / scroll-view padding / 现代 CSS 特性')
+/**
+ * 闸门五：定位接口的声明。
+ *
+ * 两个坑都是「构建成功、微信开发者工具才报」的类型：
+ *
+ * 1. `requiredPrivateInfos` 里 `getLocation`（精确）和 `getFuzzyLocation`
+ *    （模糊）**互斥** —— 两个都写，工具会报「requiredPrivateInfos
+ *    'getFuzzyLocation' 与 'getLocation' 互斥」，定位接口全都用不了。
+ *    已经踩过一次（0.13.0）。
+ * 2. 代码里调了定位接口但没在 app.json 声明，运行时报
+ *    `getLocation:fail the api need to be declared in the requiredPrivateInfos`。
+ */
+function checkLocationDeclaration() {
+  const appJsonPath = path.join(distDir, 'app.json')
+  if (!fs.existsSync(appJsonPath)) return null
+
+  const appJson = JSON.parse(fs.readFileSync(appJsonPath, 'utf8'))
+  const declared = appJson.requiredPrivateInfos || []
+
+  if (declared.includes('getLocation') && declared.includes('getFuzzyLocation')) {
+    return 'requiredPrivateInfos 里同时声明了 getLocation 和 getFuzzyLocation —— 这两个接口互斥，只能留一个'
+  }
+
+  // 源码里调了定位接口，产物里就得声明（顺带覆盖 chooseLocation 这类）
+  const used = new Set()
+  const walkTs = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name)
+      if (entry.isDirectory()) walkTs(full)
+      else if (/\.[jt]sx?$/.test(entry.name)) {
+        const src = fs.readFileSync(full, 'utf8')
+        for (const api of [
+          'getLocation',
+          'getFuzzyLocation',
+          'chooseLocation',
+          'choosePoi',
+          'chooseAddress',
+        ]) {
+          if (new RegExp(`Taro\\.${api}\\s*\\(`).test(src)) used.add(api)
+        }
+      }
+    }
+  }
+  walkTs(path.resolve(__dirname, '..', 'src'))
+
+  const undeclared = [...used].filter((api) => !declared.includes(api))
+  if (undeclared.length) {
+    return `代码里调用了 ${undeclared.join(', ')}，但 dist/app.json 的 requiredPrivateInfos 里没声明（运行时接口会直接 fail）`
+  }
+
+  return null
+}
+
+const locationProblem = checkLocationDeclaration()
+if (locationProblem) {
+  console.error('\n✗ 定位接口声明有问题：\n')
+  console.error(`  ${locationProblem}\n`)
+  console.error(
+    '  修法：改 src/app.config.ts 的 requiredPrivateInfos。同城匹配只需要城市级\n' +
+      '  精度，所以声明 getFuzzyLocation（模糊）就够，不要同时写 getLocation。\n',
+  )
+  process.exit(1)
+}
+
+console.log(
+  '✓ 产物体检通过：process 引用 / HTML 标签映射 / scroll-view padding / 现代 CSS 特性 / 定位声明',
+)

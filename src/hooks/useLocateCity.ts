@@ -8,23 +8,19 @@ import type { LatLng } from '@/utils/geo'
 /**
  * 问微信要一次当前位置。
  *
- * 优先 `getFuzzyLocation`：它只给到城市级精度，隐私门槛比精确的
- * `getLocation` 低（后者要单独在「开发管理 - 接口设置」申请开通）。
- * 两个都没拿到就返回 null，由调用方提示用户手动选。
+ * 只用 `getFuzzyLocation`：它只给到城市级精度，正好够做同城匹配，
+ * 而且隐私门槛比精确的 `getLocation` 低。
+ *
+ * **不要加 getLocation 当兼容分支**：app.json 的 requiredPrivateInfos 里
+ * 这两个接口互斥，声明了模糊再声明精确，微信开发者工具会直接报文件内容错误。
+ * 拿不到就返回 null，由调用方提示用户手动选城市。
  */
 async function getCurrentPoint(): Promise<LatLng | null> {
   try {
     const res = await Taro.getFuzzyLocation({ type: 'wgs84' })
     if (res?.latitude) return { lat: res.latitude, lng: res.longitude }
   } catch {
-    // 没声明 / 没开通 / 用户拒绝，继续试精确的
-  }
-
-  try {
-    const res = await Taro.getLocation({ type: 'wgs84' })
-    if (res?.latitude) return { lat: res.latitude, lng: res.longitude }
-  } catch {
-    // 同上
+    // 没声明 / 没开通接口权限 / 用户拒绝授权
   }
 
   return null

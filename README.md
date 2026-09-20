@@ -55,7 +55,7 @@ pnpm build:weapp    # 构建到 dist/
 | `pnpm verify:quota` | 每日配额验证（10 项断言） |
 | `pnpm verify:moderation` | 发布内容校验（7 项断言，重点是「不该拦」的样例） |
 | `pnpm verify:icons` | 图标验证（渲染标签 / 样式序列化 / PNG 透明度和颜色） |
-| `pnpm verify:dist` | 产物体检（残留的 process / HTML 标签映射） |
+| `pnpm verify:dist` | 产物体检（残留的 process / HTML 标签映射 / 定位接口声明） |
 
 ## 切换到真实云开发
 
@@ -139,6 +139,10 @@ assets/tab/              # TabBar 的 PNG（由 pnpm gen:tab-icons 生成，产�
   接口设置」申请开通定位权限、`app.config.ts` 里的 `requiredPrivateInfos` 声明、
   微信后台「用户隐私保护指引」勾选地理位置；少一个接口就会 fail，
   客户端已降级为提示手动选择。
+- **`requiredPrivateInfos` 里 `getFuzzyLocation` 和 `getLocation` 互斥**，
+  只能声明一个（两个都写，开发者工具报「文件内容错误」，接口全不可用）。
+  本项目只声明模糊定位，`useLocateCity` 里也就不要去写 getLocation 的兼容分支；
+  `pnpm verify:dist` 会拦住这两个坑。
 - **手选城市会一并写 `location` = 该城市中心点**。`getCards` 是拿 `location`
   算距离的，不写就会一直用 `DEFAULT_LOCATION`（上海）当原点，卡片上会出现
   「1060km」这种距离。
