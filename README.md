@@ -101,7 +101,7 @@ src/
 │   ├── chat/            #   聊天
 │   ├── profile/         #   我的（只有信息卡片 + 功能入口）
 │   ├── settings/        #   设置（昵称 / 头像 / 城市，改完即时保存）
-│   └── city/            #   选择城市（搜索 + 热门 + 全部）
+│   └── city/            #   选择城市（搜索 + 热门 + 全部，定位默认关着）
 ├── constants/           # 品类/成色/估值区间枚举 + 城市列表 + 种子数据
 ├── utils/               # 距离计算、时间格式化、城市搜索
 └── styles/              # 设计变量 + NutUI 按需样式
@@ -132,17 +132,20 @@ assets/tab/              # TabBar 的 PNG（由 pnpm gen:tab-icons 生成，产�
   `ALL_CITIES`，含拼音和市中心坐标）。页面里不要再抄一份 —— 抄漏了就会出现
   「用户资料里的城市，在选择页里找不到」，不报错但没法用。搜索和就近匹配在
   `src/utils/city.ts`，改完跑 `pnpm verify:city`。
-- **定位只在用户主动点击时请求**（城市选择页的「使用当前定位」），不在进页面时弹
-  授权框。微信不给城市名、只给经纬度，本项目**不接外部逆地理编码服务** ——
-  拿 `ALL_CITIES` 的市中心做就近匹配（`nearestCity`），代价是边界地区可能选到
-  邻近城市，但不用管腾讯地图的 key 和配额。接口能调通有三个前提：在「开发管理 →
-  接口设置」申请开通定位权限、`app.config.ts` 里的 `requiredPrivateInfos` 声明、
-  微信后台「用户隐私保护指引」勾选地理位置；少一个接口就会 fail，
-  客户端已降级为提示手动选择。
+- **定位默认关着**：开关在 `src/config/location.ts` 的 `LOCATION_ENABLED`，
+  `false` 时 app.json 不声明任何定位接口、城市选择页也不渲染定位按钮。
+  为什么默认关：只要声明了 `getFuzzyLocation` 而账号没拿到该接口权限，微信会拒绝
+  **预览和上传**（`[getFuzzyLocation] is not authorized`，-80424）—— 卡住的是
+  整个小程序。开通路径：①「开发管理 → 接口设置」申请 getFuzzyLocation
+  ②后台「用户隐私保护指引」勾选地理位置，然后把开关改成 `true`。
 - **`requiredPrivateInfos` 里 `getFuzzyLocation` 和 `getLocation` 互斥**，
   只能声明一个（两个都写，开发者工具报「文件内容错误」，接口全不可用）。
-  本项目只声明模糊定位，`useLocateCity` 里也就不要去写 getLocation 的兼容分支；
-  `pnpm verify:dist` 会拦住这两个坑。
+  本项目只用模糊定位（同城匹配只要城市级精度），`useLocateCity` 里不要写
+  getLocation 的兼容分支。`pnpm verify:dist` 会核对「开关 ↔ app.json 声明」一致。
+- **定位只在用户主动点击时请求**，不在进页面时弹授权框。微信不给城市名、只给
+  经纬度，本项目**不接外部逆地理编码服务** —— 拿 `ALL_CITIES` 的市中心做就近
+  匹配（`nearestCity`），代价是边界地区可能选到邻近城市，但不用管腾讯地图的
+  key 和配额。
 - **手选城市会一并写 `location` = 该城市中心点**。`getCards` 是拿 `location`
   算距离的，不写就会一直用 `DEFAULT_LOCATION`（上海）当原点，卡片上会出现
   「1060km」这种距离。

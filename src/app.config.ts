@@ -1,3 +1,27 @@
+import { LOCATION_ENABLED } from './config/location'
+
+/**
+ * 定位接口的声明。
+ *
+ * **默认不声明**（`LOCATION_ENABLED = false`）——只要声明了
+ * `getFuzzyLocation` 而账号还没拿到该接口权限，微信会拒绝预览和上传：
+ * `[getFuzzyLocation] is not authorized（-80424）`。
+ * 那卡住的是整个小程序，不只是定位。开关在 src/config/location.ts。
+ *
+ * 两个注意点（`pnpm verify:dist` 会拦）：
+ * 1. `getLocation`（精确）和 `getFuzzyLocation`（模糊）在这里**互斥**，
+ *    同时写会被开发者工具报「文件内容错误」，且定位接口全不可用。
+ *    同城匹配只要城市级精度，所以用模糊定位。
+ * 2. 开关和 app.json 必须一致：开了没声明 → 接口 fail；声明了没开 →
+ *    城市选择页不显示定位按钮，白声明。
+ */
+const locationConfig = LOCATION_ENABLED
+  ? {
+      requiredPrivateInfos: ['getFuzzyLocation'] as ('getFuzzyLocation' | 'getLocation')[],
+      permission: { 'scope.userLocation': { desc: '用于推荐和你同城的物品' } },
+    }
+  : {}
+
 export default defineAppConfig({
   pages: [
     'pages/index/index',
@@ -50,26 +74,5 @@ export default defineAppConfig({
     navigationBarTitleText: '换换',
     navigationBarTextStyle: 'black',
   },
-  /**
-   * 「选择城市」页的「使用当前定位」要用定位接口。
-   *
-   * 自 2022-07-14 起，没在这里声明的定位接口调用会直接失败
-   * （getLocation:fail the api need to be declared in the requiredPrivateInfos field）。
-   *
-   * 只能声明一个：`getLocation`（精确）和 `getFuzzyLocation`（模糊）
-   * 在 requiredPrivateInfos 里互斥 —— 两个都写，微信开发者工具会直接报
-   * “requiredPrivateInfos 'getFuzzyLocation' 与 'getLocation' 互斥”，
-   * 而构建本身是成功的（`pnpm verify:dist` 会拦下来）。
-   *
-   * 这里选模糊定位：同城匹配只需要城市级精度，而且它的接口审核门槛比
-   * 精确位置低。声明之外还需要在「开发管理 → 接口设置」里申请开通，
-   * 并在后台「用户隐私保护指引」里勾选地理位置 —— 少一个都会 fail，
-   * 客户端已做降级（提示手动选城市）。
-   */
-  requiredPrivateInfos: ['getFuzzyLocation'],
-  permission: {
-    'scope.userLocation': {
-      desc: '用于推荐和你同城的物品',
-    },
-  },
+  ...locationConfig,
 })

@@ -51,7 +51,7 @@
 | 命令 | 挡住的错误 |
 | --- | --- |
 | `pnpm lint` | hooks 依赖写错、未使用变量、`==` 误用 |
-| `pnpm verify:dist` | 残留的 `process.*`；产物里有 HTML 标签但没启用 html 插件；scroll-view 自身带 padding；`requiredPrivateInfos` 里同时声明了互斥的 getLocation / getFuzzyLocation |
+| `pnpm verify:dist` | 残留的 `process.*`；产物里有 HTML 标签但没启用 html 插件；scroll-view 自身带 padding；`requiredPrivateInfos` 声明与 `LOCATION_ENABLED` 开关不一致，或同时声明了互斥的 getLocation / getFuzzyLocation |
 | `pnpm verify:icons` | 图标渲染成 `<i>`；`-webkitMask` 没被转成合法 CSS；PNG 带白底 |
 | `pnpm verify:matching` | 匹配规则写错；分页漏卡；种子数据被改到「怎么点都不匹配」 |
 | `pnpm verify:filter` | 筛选草稿算错（选中之后点不掉、改了原数组导致不重渲染） |

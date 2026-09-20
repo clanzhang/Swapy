@@ -4,6 +4,7 @@ import Taro from '@tarojs/taro'
 import { useMemo, useState } from 'react'
 
 import { ArrowRight, Check, Location } from '@/components/Icon'
+import { LOCATION_ENABLED } from '@/config/location'
 import { ALL_CITIES, HOT_CITIES, THEME } from '@/constants'
 import { useLocateCity } from '@/hooks/useLocateCity'
 import { useUserStore } from '@/store/userStore'
@@ -18,7 +19,8 @@ import './index.scss'
  * 以前是在「设置」里平铺十来个标签：占屏、还选不到自己的城市。
  * 现在改成「定位 + 搜索 + 热门 + 全部」，并且：
  * - 选中即保存（即时写 users.city），不需要再点保存
- * - 定位是**主动点击**才触发，不在进页面时弹授权框（和静默登录的调性一致）
+ * - 定位是**主动点击**才触发，不在进页面时弹授权框（和静默登录的调性一致）；
+ *   只有 LOCATION_ENABLED 为 true（已声明定位接口）时才渲染这个入口
  * - 「不限城市」始终可点 —— 城市本来就可选，得留一条退路
  * - 用 searchCities / nearestCity 纯函数匹配（pnpm verify:city）
  */
@@ -109,16 +111,22 @@ export default function CityPicker() {
             )
           ) : (
             <>
-              <View className='city__row city__row--action' onClick={() => void locateNow()}>
-                <Location size={16} color={THEME.primary} />
-                <View className='city__row-main'>
-                  <Text className='city__row-title'>{locating ? '定位中…' : '使用当前定位'}</Text>
-                  <Text className='city__row-desc'>
-                    {locating ? '正在获取位置' : '自动匹配到最近的城市'}
-                  </Text>
+              {/* 没声明定位接口时不渲染 —— 声明了但账号没权限，连预览/上传都会被拒 */}
+              {LOCATION_ENABLED && (
+                <View
+                  className='city__row city__row--action'
+                  onClick={() => void locateNow()}
+                >
+                  <Location size={16} color={THEME.primary} />
+                  <View className='city__row-main'>
+                    <Text className='city__row-title'>{locating ? '定位中…' : '使用当前定位'}</Text>
+                    <Text className='city__row-desc'>
+                      {locating ? '正在获取位置' : '自动匹配到最近的城市'}
+                    </Text>
+                  </View>
+                  <ArrowRight size={14} color={THEME.textWeak} />
                 </View>
-                <ArrowRight size={14} color={THEME.textWeak} />
-              </View>
+              )}
 
               <View
                 className={`city__row ${current ? '' : 'city__row--on'}`}

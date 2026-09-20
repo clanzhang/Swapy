@@ -12,18 +12,32 @@ import type { LatLng } from '@/utils/geo'
  * 而且隐私门槛比精确的 `getLocation` 低。
  *
  * **不要加 getLocation 当兼容分支**：app.json 的 requiredPrivateInfos 里
- * 这两个接口互斥，声明了模糊再声明精确，微信开发者工具会直接报文件内容错误。
- * 拿不到就返回 null，由调用方提示用户手动选城市。
+ * 这两个接口互斥，同时声明会被开发者工具直接报错，接口全不可用。
+ *
+ * 失败时返回一个原因（errMsg），拿不到位置则 location 为 null，
+ * 由调用方提示用户手动选城市。
  */
-async function getCurrentPoint(): Promise<LatLng | null> {
+async function getCurrentPoint(): Promise<{ location: LatLng | null; errMsg: string }> {
   try {
     const res = await Taro.getFuzzyLocation({ type: 'wgs84' })
-    if (res?.latitude) return { lat: res.latitude, lng: res.longitude }
-  } catch {
-    // 没声明 / 没开通接口权限 / 用户拒绝授权
+    if (res?.latitude) return { location: { lat: res.latitude, lng: res.longitude }, errMsg: '' }
+    return { location: null, errMsg: '' }
+  } catch (err) {
+    const errMsg = String((err as { errMsg?: string })?.errMsg ?? err ?? '')
+    return { location: null, errMsg }
   }
+}
 
-  return null
+/** 把微信的报错翻译成人话 */
+function describeFailure(errMsg: string): string {
+  if (/not authorized|-80424/i.test(errMsg)) {
+    // 接口权限还没开通（或隐私保护指引里没勾地理位置）
+    return '小程序还没开通定位，请手动选择城市'
+  }
+  if (/auth deny|auth denied|authorize/i.test(errMsg)) {
+    return '没授权定位，请手动选择城市'
+  }
+  return '没拿到定位，请手动选择城市'
 }
 
 export interface LocateResult {
@@ -52,9 +66,9 @@ export function useLocateCity(): { locate: () => Promise<LocateResult>; locating
   const locate = useCallback(async (): Promise<LocateResult> => {
     setLocating(true)
     try {
-      const point = await getCurrentPoint()
+      const { location: point, errMsg } = await getCurrentPoint()
       if (!point) {
-        return { city: null, message: '没拿到定位，请手动选择城市' }
+        return { city: null, message: describeFailure(errMsg) }
       }
 
       const city = nearestCity(point)
