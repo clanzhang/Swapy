@@ -55,7 +55,7 @@ pnpm build:weapp    # 构建到 dist/
 | `pnpm verify:quota` | 每日配额验证（10 项断言） |
 | `pnpm verify:moderation` | 发布内容校验（7 项断言，重点是「不该拦」的样例） |
 | `pnpm verify:icons` | 图标验证（渲染标签 / 样式序列化 / PNG 透明度和颜色） |
-| `pnpm verify:dist` | 产物体检（残留的 process / HTML 标签映射 / 定位接口声明） |
+| `pnpm verify:dist` | 产物体检（残留的 process / HTML 标签映射 / 定位接口声明 / 产物完整性） |
 
 ## 切换到真实云开发
 

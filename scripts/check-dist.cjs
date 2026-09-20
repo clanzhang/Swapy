@@ -284,8 +284,65 @@ const locationDeclared = JSON.parse(
   fs.readFileSync(path.join(distDir, 'app.json'), 'utf8'),
 ).requiredPrivateInfos?.length
 
+/**
+ * 闸门六：产物完整性。
+ *
+ * 小程序不报「文件缺失」，而是白屏或者模拟器直接起不来（“simulator launch failed”）。
+ * 具体要保证：app.json 里 each 页面都有 js / json / wxml / wxss，
+ * 页面 json 里 usingComponents 指向的组件真的存在，tabBar 图标也在。
+ * 这些在 Taro 侧往往是因为“页面没写进 app.config 的 pages”或构建中断。
+ */
+function collectMissingArtifacts() {
+  const missing = []
+  const need = (rel) => {
+    if (!fs.existsSync(path.join(distDir, rel))) missing.push(rel)
+  }
+
+  for (const f of ['app.js', 'app.json', 'app.wxss', 'base.wxml']) need(f)
+
+  const appJsonPath = path.join(distDir, 'app.json')
+  if (!fs.existsSync(appJsonPath)) return missing
+  const appJson = JSON.parse(fs.readFileSync(appJsonPath, 'utf8'))
+
+  for (const page of appJson.pages || []) {
+    for (const ext of ['js', 'json', 'wxml', 'wxss']) need(`${page}.${ext}`)
+
+    const jsonPath = path.join(distDir, `${page}.json`)
+    if (!fs.existsSync(jsonPath)) continue
+    const pageJson = JSON.parse(fs.readFileSync(jsonPath, 'utf8'))
+
+    for (const target of Object.values(pageJson.usingComponents || {})) {
+      // 相对页面文件解析，如 "../../comp" → dist/comp.{js,wxml}
+      const base = path.resolve(path.dirname(jsonPath), target)
+      for (const ext of ['js', 'wxml']) {
+        if (!fs.existsSync(`${base}.${ext}`)) {
+          missing.push(`${path.relative(distDir, base)}.${ext}（${page} 的 usingComponents）`)
+        }
+      }
+    }
+  }
+
+  for (const item of appJson.tabBar?.list || []) {
+    for (const key of ['iconPath', 'selectedIconPath']) {
+      if (item[key]) need(item[key])
+    }
+  }
+
+  return missing
+}
+
+const missingArtifacts = collectMissingArtifacts()
+if (missingArtifacts.length) {
+  console.error('\n✗ 产物缺文件（小程序不会报错，直接白屏或模拟器起不来）：\n')
+  for (const f of missingArtifacts) console.error(`  ${f}`)
+  console.error(
+    '\n  检查：页面是不是写进了 src/app.config.ts 的 pages？构建是否完整跑完？\n',
+  )
+  process.exit(1)
+}
+
 console.log(
-  '✓ 产物体检通过：process 引用 / HTML 标签映射 / scroll-view padding / 现代 CSS 特性 / 定位声明',
+  '✓ 产物体检通过：process 引用 / HTML 标签映射 / scroll-view padding / 现代 CSS 特性 / 定位声明 / 产物完整性',
 )
 console.log(
   locationDeclared
