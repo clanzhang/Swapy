@@ -30,6 +30,7 @@
 
 .deck-body {
   display: flex;
+  position: relative;
   // 规范：卡片占屏幕 70% 高度。
   // 顶部留白是给后方卡片的顶边露出来用的
   flex: none;
@@ -96,6 +97,37 @@
 .deck-loading__text {
   color: $text-weak;
   font-size: 12px;
+}
+
+// ------------------------------------------------------------ 底部续拉提示
+//
+// 绝对定位：牌堆占满 70vh，插一个流内元素会把卡片区挤小、
+// 正在飞的卡片也会跳一下。
+.deck-more {
+  position: absolute;
+  bottom: 6px;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  // 这里不能用 width: 100% —— absolute + 100% 会溢出到父元素外，
+  // 用 left/right 撑开更稳
+  right: 0;
+}
+
+.deck-more__spinner {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid $brand-soft;
+  border-top-color: $brand;
+  border-radius: 50%;
+  animation: deck-spin 720ms linear infinite;
+}
+
+.deck-more__text {
+  color: $text-weak;
+  font-size: 11px;
 }
 
 .deck-btn {

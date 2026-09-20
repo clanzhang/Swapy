@@ -59,6 +59,6 @@
 | `pnpm verify:motion` | 弹窗又用「挂载即播」的 keyframes、两个动画重叠、卡片没 memo |
 | `pnpm verify:user` | 登录状态写错（isNew 永远为 true）、新用户没城市导致首页空白 |
 | `pnpm verify:city` | 城市列表漏了已有城市、拼音/首字母搜索写错（输 sh 一个结果都没有）、坐标表写错导致定位匹配到别的城市 |
-| `pnpm verify:store` | 牌堆状态机写错：重复扣额度、过期响应污染牌堆、失败后不回滚 |
+| `pnpm verify:store` | 牌堆状态机写错：重复扣额度、过期响应污染牌堆、失败后不回滚；空状态提前出现（牌堆没空、或还能续拉却显示「看过了」） |
 | `pnpm verify:gesture` | 手势阈值写错（改完会打印一张参数表，调手感不用通真机） |
 | `pnpm verify:quota` | 配额的时间边界算错（跨 12:00、跨天重置） |

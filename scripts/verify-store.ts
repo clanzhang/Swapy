@@ -12,6 +12,7 @@ import { api } from '@/services'
 import { resetMockData } from '@/services/mock'
 import { useDeckStore } from '@/store/deckStore'
 import type { CardItem, GetCardsParams, GetCardsResult } from '@/types'
+import { deckView } from '@/utils/deck'
 import { DAILY_QUOTA } from '@/utils/quota'
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -29,6 +30,8 @@ async function fresh() {
     page: 1,
     hasMore: true,
     loading: false,
+    loadFailed: false,
+    emptyPages: 0,
     categories: [],
     matchResult: null,
     quota: null,
@@ -196,6 +199,126 @@ async function main() {
     }
 
     assert.ok(count >= 12, `只滑了 ${count} 张，分页可能没生效`)
+  })
+
+  await step('空状态只在「牌堆空了 + hasMore=false」时出现', async () => {
+    // 这条就是把首页那个 bug 锁死：牌堆还有卡、或者还能续拉的时候，
+    // 绝不能掉进空状态（用户看到「附近的物品都看过了」就退出了）。
+    const view = (input: Partial<Parameters<typeof deckView>[0]>) =>
+      deckView({ outOfQuota: false, cardCount: 0, hasMore: false, loadFailed: false, ...input })
+
+    assert.equal(view({ cardCount: 0, hasMore: false }), 'empty', '确实滑完了才是空状态')
+    assert.equal(view({ cardCount: 0, hasMore: true }), 'loading', '还能续拉就只能显示加载中')
+    assert.equal(view({ cardCount: 3, hasMore: true }), 'cards', '牌堆有卡永远显示卡片')
+    assert.equal(view({ cardCount: 3, hasMore: false }), 'cards', '最后几张也要能滑完')
+    assert.equal(
+      view({ cardCount: 0, hasMore: true, loadFailed: true }),
+      'retrying',
+      '续拉失败要给「重新加载」，而不是一直转圈或假装看完了',
+    )
+    assert.equal(view({ cardCount: 3, outOfQuota: true }), 'quota', '额度用完优先级最高')
+    assert.equal(
+      view({ cardCount: 0, hasMore: true, outOfQuota: true }),
+      'quota',
+      '额度用完时不该去拉卡',
+    )
+  })
+
+  await step('剩余不足 5 张就预加载下一页，且追加不打断当前滑动', async () => {
+    await fresh()
+
+    const original = api.getCards.bind(api)
+    const pages: number[] = []
+    api.getCards = async (query: GetCardsParams): Promise<GetCardsResult> => {
+      pages.push(query.page ?? 1)
+      return original(query)
+    }
+
+    // 直接摆出一个「只剩 4 张」的牌堆（阈值是 5，也就是不足 5 张）。
+    // 不用一直滑到 4 张 —— 预加载会自动补货，滑到什么时候停是不确定的。
+    const kept = deck().cards.slice(0, 4)
+    assert.equal(kept.length, 4, '前置条件：需要至少 4 张卡')
+    useDeckStore.setState({ cards: kept, page: 2, hasMore: true })
+    pages.length = 0
+
+    await deck().commitSwipe('left')
+    await sleep(80)
+
+    // eslint-disable-next-line require-atomic-updates
+    api.getCards = original
+
+    assert.ok(pages.includes(2), `剩 3 张时应该去拉第 2 页，实际请求了 ${pages.join('/') || '无'}`)
+    assert.ok(deck().cards.length > 3, '新卡片应该追加在末尾，而不是把牌堆清空')
+    assert.equal(deck().cards[0]._id, kept[1]._id, '新卡片应该追加在末尾，当前的下一张顶到最前')
+    assert.ok(
+      deck().cards.slice(0, 3).every((c) => kept.some((k) => k._id === c._id)),
+      '原来剩下的卡不该被重新排序',
+    )
+  })
+
+  await step('续拉失败会标记出来，不会一直转圈', async () => {
+    await fresh()
+
+    // 把牌堆滑空，且让续拉失败
+    const original = api.getCards.bind(api)
+    api.getCards = async () => {
+      throw new Error('模拟网络失败')
+    }
+
+    while (deck().cards.length) {
+      await deck().commitSwipe('left')
+      await sleep(8)
+    }
+    await sleep(60)
+
+    // eslint-disable-next-line require-atomic-updates
+    api.getCards = original
+
+    assert.equal(deck().cards.length, 0, '前置条件：牌堆已空')
+    assert.equal(deck().loadFailed, true, '失败要留下来，页面才能给重试入口')
+    assert.equal(deck().loading, false, '失败后不能停在 loading')
+
+    const view = deckView({
+      outOfQuota: false,
+      cardCount: 0,
+      hasMore: deck().hasMore,
+      loadFailed: deck().loadFailed,
+    })
+    assert.equal(view, 'retrying', '页面应该显示可重试的失败态')
+
+    // 点重试（loadMore）后应该能恢复
+    await deck().loadMore()
+    await sleep(30)
+    assert.equal(deck().loadFailed, false, '重试成功后失败标记要清掉')
+    assert.ok(deck().cards.length > 0, '重试应该真的把卡片拉回来')
+  })
+
+  await step('服务端连续回空页时不再无休止翻页', async () => {
+    // 分页下标漂移会让服务端「回空页但 hasMore=true」，
+    // 没上限的话首页会一直转圈、接口被打满。
+    await fresh()
+
+    const original = api.getCards.bind(api)
+    const quota = (await original({ page: 1, pageSize: 1 })).quota
+    let calls = 0
+    api.getCards = async (): Promise<GetCardsResult> => {
+      calls += 1
+      return { cards: [], hasMore: true, quota: quota! }
+    }
+
+    useDeckStore.setState({ cards: [], hasMore: true, page: 1, loadFailed: false, emptyPages: 0 })
+    await deck().loadMore()
+    assert.equal(deck().hasMore, true, '一两页空页还不该放弃')
+
+    await deck().loadMore()
+    await deck().loadMore()
+    await deck().loadMore()
+
+    // eslint-disable-next-line require-atomic-updates
+    api.getCards = original
+
+    assert.ok(calls >= 3, '应该拉了几次才放弃')
+    assert.equal(deck().hasMore, false, '连续空页到上限后要停下来，不能继续翻页')
   })
 
   console.log('\n全部通过 ✅\n')

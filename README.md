@@ -45,7 +45,7 @@ pnpm build:weapp    # 构建到 dist/
 | `pnpm typecheck` | TypeScript 检查（strict） |
 | `pnpm verify` | 下面全部一起跑 |
 | `pnpm verify:matching` | 匹配算法验证（14 项断言，含分页不漏卡） |
-| `pnpm verify:store` | deckStore 状态机验证（5 项断言，含并发与失败恢复） |
+| `pnpm verify:store` | deckStore 状态机验证（9 项断言，含并发、失败恢复、预加载） |
 | `pnpm verify:filter` | 筛选验证（7 项：标签增删、不可变性、sameCategories） |
 | `pnpm verify:chat` | 聊天验证（9 项：去重、分页、时间戳规则） |
 | `pnpm verify:motion` | 动画性能验证（4 项，防弹窗卡屏回归） |
@@ -128,6 +128,10 @@ assets/tab/              # TabBar 的 PNG（由 pnpm gen:tab-icons 生成，产�
   每日上限和刷新整点是常量，改的时候三处要对齐。**判定只在服务端做**：
   客户端只拿 `{ limit, used, remaining, resetAt }` 显示，不参与计算。
 - **图片切图用点击左右区域，不用横滑** —— 横滑手势留给「跳过 / 想要」。
+- **首页的空状态只能在「牌堆空了 + hasMore=false」时出现**。牌堆空了但还有
+  下一页、或者续拉失败，都只能显示加载/重试态 —— 提前弹「附近的物品都看过了」
+  会让用户直接退出。这个判定抽成了 `src/utils/deck.ts` 的 `deckView`（纯函数，
+  由 `pnpm verify:store` 守），页面不要再自己在 JSX 里拼条件。
 - **城市列表只有一个数据源**：`src/constants/cities.ts`（`HOT_CITIES` /
   `ALL_CITIES`，含拼音和市中心坐标）。页面里不要再抄一份 —— 抄漏了就会出现
   「用户资料里的城市，在选择页里找不到」，不报错但没法用。搜索和就近匹配在

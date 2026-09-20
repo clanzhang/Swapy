@@ -13,6 +13,7 @@ import { THEME } from '@/constants'
 import { useDeckStore } from '@/store/deckStore'
 import { useUserStore } from '@/store/userStore'
 import type { CardItem, SwipeDirection } from '@/types'
+import { deckView } from '@/utils/deck'
 
 import './index.scss'
 
@@ -23,9 +24,11 @@ export default function Index() {
   const cards = useDeckStore((s) => s.cards)
   const loading = useDeckStore((s) => s.loading)
   const hasMore = useDeckStore((s) => s.hasMore)
+  const loadFailed = useDeckStore((s) => s.loadFailed)
   const matchResult = useDeckStore((s) => s.matchResult)
   const quota = useDeckStore((s) => s.quota)
   const init = useDeckStore((s) => s.init)
+  const loadMore = useDeckStore((s) => s.loadMore)
   const commitSwipe = useDeckStore((s) => s.commitSwipe)
   const clearMatch = useDeckStore((s) => s.clearMatch)
 
@@ -113,6 +116,30 @@ export default function Index() {
 
   const outOfQuota = (quota?.remaining ?? 1) <= 0
 
+  /**
+   * 该显示什么，交给纯函数判定（"空状态必须同时满足牌堆为空 + hasMore=false"）。
+   * 判在这里而不是散在 JSX 里：以前「牌堆空了但还能续拉」会直接落到空状态，
+   * 用户看到「附近的物品都看过了」就退出了。
+   */
+  const view = deckView({
+    outOfQuota,
+    cardCount: cards.length,
+    hasMore,
+    loadFailed,
+  })
+
+  /**
+   * 兜底续拉。
+   *
+   * 正常路径由 commitSwipe 的预加载覆盖，但下面几种情况会漏：
+   * - 一次拉回来的卡不够（或者全是已滑过的），滑完就直接空了
+   * - 预加载失败过（loadFailed=true 时不再自动重试，交给用户点按）
+   * 只在牌堆真的空、且还有下一页时触发，失败了也不会循环重试。
+   */
+  useEffect(() => {
+    if (view === 'loading') void loadMore()
+  }, [view, loadMore])
+
   return (
     <View className='page deck'>
       <View className='deck-head'>
@@ -126,34 +153,36 @@ export default function Index() {
       </View>
 
       <View className='deck-body'>
-        {outOfQuota ? (
+        {view === 'quota' ? (
           <QuotaLimit
             resetAt={quota!.resetAt}
             onPublish={() => void Taro.switchTab({ url: '/pages/publish/index' })}
           />
-        ) : !cards.length ? (
-          // 加载中也要有东西，否则卡片区是一片空白，看起来像坏了
-          loading ? (
-            <View className='deck-loading'>
-              <View className='deck-loading__spinner' />
-              <Text className='deck-loading__text'>正在找附近的闲置…</Text>
+        ) : view === 'empty' ? (
+          <View className='empty'>
+            <FaceMild size={32} color='#C8C8CE' />
+            <Text className='empty-title empty-title--spaced'>附近的物品都看过了</Text>
+            <Text className='empty-desc'>发布一件自己的闲置，让更多人滑到你</Text>
+            <View className='deck-empty-btn' onClick={() => void init()}>
+              <Text>重新加载</Text>
             </View>
-          ) : (
-            <View className='empty'>
-              <FaceMild size={32} color='#C8C8CE' />
-              <Text className='empty-title empty-title--spaced'>
-                {hasMore ? '这一批滑完啦' : '附近的物品都看过了'}
-              </Text>
-              <Text className='empty-desc'>
-                {hasMore
-                  ? '稍后再来看看，或者发布一件自己的闲置'
-                  : '发布一件自己的闲置，让更多人滑到你'}
-              </Text>
-              <View className='deck-empty-btn' onClick={() => void init()}>
-                <Text>重新加载</Text>
-              </View>
+          </View>
+        ) : view === 'retrying' ? (
+          <View className='empty'>
+            <FaceMild size={32} color='#C8C8CE' />
+            <Text className='empty-title empty-title--spaced'>没能拉到更多物品</Text>
+            <Text className='empty-desc'>网络不太好，点一下重试</Text>
+            <View className='deck-empty-btn' onClick={() => void loadMore()}>
+              <Text>重新加载</Text>
             </View>
-          )
+          </View>
+        ) : view === 'loading' ? (
+          // 首次进入、以及「牌堆空了但还有下一页」都走这里。
+          // 绝不能让位给空状态 —— 那会让人以为没东西可滑了。
+          <View className='deck-loading'>
+            <View className='deck-loading__spinner' />
+            <Text className='deck-loading__text'>正在找附近的闲置…</Text>
+          </View>
         ) : (
           <CardStack
             cards={cards}
@@ -162,6 +191,14 @@ export default function Index() {
             onDecide={handleDecide}
             onDetail={handleDetail}
           />
+        )}
+
+        {/* 牌堆还有卡、只是在悄悄续拉：底部给一条小提示，不抢卡片的位置 */}
+        {view === 'cards' && loading && (
+          <View className='deck-more'>
+            <View className='deck-more__spinner' />
+            <Text className='deck-more__text'>正在加载更多…</Text>
+          </View>
         )}
       </View>
 

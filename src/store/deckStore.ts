@@ -13,7 +13,16 @@ import type {
 } from '@/types'
 
 /** 剩余不足这个数就提前拉下一批，让「滑到底」这件事用户感知不到 */
-const PREFETCH_THRESHOLD = 3
+const PREFETCH_REMAINING = 5
+
+/**
+ * 连续多少次「空页」就不再往下翻了。
+ *
+ * 服务端偶尔会回一页空卡却还说 hasMore=true（分页下标漂移、或其他数据
+ * 查询的限制）。不设上限的话，首页会一遍遍地拉下一页 —— 用户看到的是
+ * 一直转圈，接口被白白打满。
+ */
+const MAX_EMPTY_PAGES = 3
 
 interface DeckState {
   cards: CardItem[]
@@ -21,6 +30,10 @@ interface DeckState {
   page: number
   hasMore: boolean
   loading: boolean
+  /** 上一次续拉失败了，页面据此显示可重试的失败态而不是一直转圈 */
+  loadFailed: boolean
+  /** 连续空页数，到 MAX_EMPTY_PAGES 就停止翻页 */
+  emptyPages: number
   /** 品类筛选，空数组 = 不限 */
   categories: Category[]
   /** 非空时首页弹出匹配成功动画 */
@@ -47,6 +60,8 @@ export const useDeckStore = create<DeckState>((set, get) => ({
   page: 1,
   hasMore: true,
   loading: false,
+  loadFailed: false,
+  emptyPages: 0,
   categories: [],
   matchResult: null,
   quota: null,
@@ -58,18 +73,21 @@ export const useDeckStore = create<DeckState>((set, get) => ({
       page: 1,
       hasMore: true,
       loading: false,
+      loadFailed: false,
+      emptyPages: 0,
       epoch: get().epoch + 1,
     })
     await get().loadMore()
   },
 
   async loadMore() {
-    const { loading, hasMore, page, categories, epoch } = get()
+    const { loading, hasMore, page, categories, epoch, emptyPages } = get()
     if (loading || !hasMore) return
     // 额度用完就别再拉卡了，服务端也不会给
     if (get().quota && get().quota!.remaining <= 0) return
 
-    set({ loading: true })
+    // loadFailed 在这里清掉：手动点「重新加载」时，页面上的失败态要立刻变成加载态
+    set({ loading: true, loadFailed: false })
     try {
       const res = await itemService.getCards({
         page,
@@ -80,15 +98,21 @@ export const useDeckStore = create<DeckState>((set, get) => ({
       // 期间用户切了品类或重新加载过，这份响应已经过期
       if (get().epoch !== epoch) return
 
+      // 空页但服务端说还有：有卡片的那一页才算真的拉到了东西
+      const streak = res.cards.length ? 0 : emptyPages + 1
+
       set({
         cards: [...get().cards, ...res.cards],
         page: page + 1,
-        // 额度耗尽时无论还有没有下一页都不再翻了
-        hasMore: res.hasMore && (res.quota?.remaining ?? 1) > 0,
+        emptyPages: streak,
+        // 额度耗尽、或连续空页太多时都不再往下翻了
+        hasMore: res.hasMore && (res.quota?.remaining ?? 1) > 0 && streak < MAX_EMPTY_PAGES,
         quota: res.quota ?? get().quota,
       })
     } catch {
-      // 拉取失败保持现状，下次滑动会再试
+      // 拉取失败保持现状（牌堆没动），但要记下失败，
+      // 否则牌堆刚好空了的话，页面会一直显示加载中
+      if (get().epoch === epoch) set({ loadFailed: true })
     } finally {
       // 只清理自己那一代的 loading；过期请求不能去动新一代的状态
       if (get().epoch === epoch) set({ loading: false })
@@ -107,7 +131,8 @@ export const useDeckStore = create<DeckState>((set, get) => ({
     // 飞出动画已经播完，这里可以放心把卡片摘掉
     set({ cards: get().cards.slice(1) })
 
-    if (get().cards.length <= PREFETCH_THRESHOLD) {
+    // 剩余不足 5 张就悄悄拉下一批：新卡追加到末尾，不打断当前这张
+    if (get().cards.length < PREFETCH_REMAINING) {
       void get().loadMore()
     }
 
@@ -143,7 +168,7 @@ export const useDeckStore = create<DeckState>((set, get) => ({
 
     // 最后一滴额度用完了，把牌堆清空，让首页直接进入引导态
     if ((res.quota?.remaining ?? 1) <= 0) {
-      set({ cards: [], page: 1, hasMore: false })
+      set({ cards: [], page: 1, hasMore: false, loadFailed: false })
     }
   },
 
