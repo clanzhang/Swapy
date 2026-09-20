@@ -4,15 +4,13 @@ import Taro from '@tarojs/taro'
 import { useEffect, useState } from 'react'
 
 import { THEME } from '@/constants'
+import { HOT_CITIES } from '@/constants/cities'
 import { useEnter } from '@/hooks/useEnter'
 import { itemService } from '@/services'
 import { useUserStore } from '@/store/userStore'
 import { defaultNickname } from '@/utils/profile'
 
 import './index.scss'
-
-/** 城市是可选的，不填就按「全部城市」推荐 */
-const CITIES = ['上海', '北京', '广州', '深圳', '杭州', '成都', '苏州', '武汉', '南京', '西安']
 
 interface Props {
   visible: boolean
@@ -130,8 +128,9 @@ export default function ProfileGuide({ visible, onClose }: Props) {
         <View className='guide__field'>
           <Text className='guide__label'>城市</Text>
           <Text className='guide__tip'>选了城市只推荐同城的物品，更容易当面交换</Text>
+          {/* 引导里只给热门城市，完整列表在「设置 → 城市」的选择页 */}
           <View className='guide__cities'>
-            {CITIES.map((c) => (
+            {HOT_CITIES.map((c) => (
               <View
                 key={c}
                 className={`guide__city ${city === c ? 'guide__city--on' : ''}`}

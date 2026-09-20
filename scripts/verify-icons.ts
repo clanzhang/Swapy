@@ -22,12 +22,14 @@ import { toDashed } from '@tarojs/shared'
 
 import {
   Book,
+  Check,
   Close,
   FaceMild,
   Gift,
   Heart,
   HeartFill,
   List,
+  Location,
   Microphone,
   Photograph,
   Plus,
@@ -35,6 +37,7 @@ import {
   Star,
   User,
   Warning,
+  ArrowRight,
   ArrowUp,
 } from '@/components/Icon'
 
@@ -45,14 +48,17 @@ const assetsDir = path.join(root, 'assets')
 const configFile = path.join(root, 'src/app.config.ts')
 
 const ICONS = {
+  ArrowRight,
   ArrowUp,
   Book,
+  Check,
   Close,
   FaceMild,
   Gift,
   Heart,
   HeartFill,
   List,
+  Location,
   Microphone,
   Photograph,
   Plus,

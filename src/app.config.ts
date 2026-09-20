@@ -5,6 +5,9 @@ export default defineAppConfig({
     'pages/publish/index',
     'pages/profile/index',
     'pages/chat/index',
+    // 「我的」只做入口，资料编辑和城市选择各是一个独立页
+    'pages/settings/index',
+    'pages/city/index',
   ],
   tabBar: {
     color: '#9FA199',

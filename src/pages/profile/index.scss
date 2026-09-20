@@ -18,11 +18,15 @@
 
 // ------------------------------------------------------------------ 用户信息
 
-.profile__head {
+.profile__card {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 2px 20px;
+  margin-bottom: 12px;
+  padding: 16px;
+  border-radius: $radius-card;
+  background: $card;
+  box-shadow: $shadow-card;
 }
 
 .profile__avatar {
@@ -62,87 +66,41 @@
 }
 
 // ------------------------------------------------------------------ 功能入口
+//
+// 行本身走 NutUI Cell（样式在 app.scss 里统一覆写），这里只管
+// 左图标 + 文字、行尾角标、以及展开出来的列表。
 
-.entries {
-  border-top: 1px solid $divider;
-}
-
-.entry {
+.entry__main {
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 52px;
-  border-bottom: 1px solid $divider;
 }
 
 .entry__label {
-  flex: 1;
-  font-size: 14px;
   color: $text;
+  font-size: 14px;
 }
 
-.entry__count {
-  color: $text-sub;
-  font-size: 13px;
+.entry__badge {
+  // NutUI 默认把数字挂到锚点外（translateX(100%)），
+  // 这里当行尾计数用，所以关掉位移、给个占位盒
+  --nutui-badge-content-transform: none;
+  --nutui-badge-height: 18px;
+  --nutui-badge-min-width: 18px;
+  --nutui-badge-padding: 0 5px;
+  --nutui-badge-font-size: 11px;
 }
 
-.entry__arrow {
-  transition: transform 220ms ease-out;
-}
-
-.entry__arrow--open {
-  transform: rotate(180deg);
+.entry__badge-box {
+  display: block;
+  width: 34px;
+  height: 18px;
 }
 
 .entry__panel {
-  padding: 12px 0 14px;
-  border-bottom: 1px solid $divider;
-}
-
-// ------------------------------------------------------------------ 设置表单
-
-.profile__editor-label {
-  display: block;
-  margin-bottom: 6px;
-  color: $text-sub;
-  font-size: 12px;
-}
-
-.profile__editor-hint {
-  display: block;
-  margin-bottom: 8px;
-  color: $text-weak;
-  font-size: 11px;
-}
-
-.profile__editor-input {
-  margin-bottom: 16px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: $subtle;
-  font-size: 14px;
-}
-
-.profile__cities {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 18px;
-}
-
-.profile__city {
-  padding: 5px 12px;
-  border: 1px solid $border;
-  border-radius: $radius-chip;
-  color: $text-sub;
-  font-size: 12px;
-}
-
-.profile__city--on {
-  border-color: $brand;
-  background: $brand;
-  color: $bg;
-  font-weight: 500;
+  // 和 Cell 自身的内边距对齐（16px），展开的列表才不会比标题缩进一层
+  padding: 4px 16px 14px;
+  background: $card;
 }
 
 // ------------------------------------------------------------------ 列表项
@@ -228,20 +186,6 @@
 }
 
 .profile__empty-text {
-  color: $text-weak;
-  font-size: 12px;
-}
-
-// ------------------------------------------------------------------ 重置
-
-.profile__reset {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 40px;
-  margin-top: 14px;
-  border: 1px dashed $border;
-  border-radius: 10px;
   color: $text-weak;
   font-size: 12px;
 }

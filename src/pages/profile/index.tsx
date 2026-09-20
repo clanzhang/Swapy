@@ -1,16 +1,14 @@
-import { Button, Input } from '@nutui/nutui-react-taro'
+import { Avatar, Badge, Cell, CellGroup } from '@nutui/nutui-react-taro'
 import { ScrollView, Text, View } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import CategoryIcon from '@/components/CategoryIcon'
-import { ArrowDown, Heart, List, Setting, User } from '@/components/Icon'
+import { ArrowRight, Heart, List, Setting } from '@/components/Icon'
 import ItemImage from '@/components/ItemImage'
 import { CATEGORY_MAP, PRICE_RANGE_MAP, THEME } from '@/constants'
-import { USE_MOCK } from '@/config'
+import { useAvatarPicker } from '@/hooks/useAvatarPicker'
 import { itemService, swipeService } from '@/services'
-import { resetMockData } from '@/services/mock'
-import { useDeckStore } from '@/store/deckStore'
 import { useUserStore } from '@/store/userStore'
 import type { CardItem, Item, ItemStatus } from '@/types'
 import { formatDistance } from '@/utils/geo'
@@ -23,21 +21,37 @@ const STATUS_LABEL: Record<ItemStatus, string> = {
   off: '已下架',
 }
 
-const CITIES = ['上海', '北京', '广州', '深圳', '杭州', '成都', '苏州', '武汉', '南京', '西安']
+/** 展开中的列表，null 表示都收起 */
+type Section = 'items' | 'wanted' | null
 
-/** 展开中的功能区，null 表示都收起 */
-type Section = 'items' | 'wanted' | 'settings' | null
+/**
+ * 行尾数字角标。
+ *
+ * Badge 默认把数字甩到锚点外的右上角（`translateX(100%)`），
+ * 这里当「一行的末尾计数」用，所以在 scss 里把位移关掉、给个占位盒。
+ */
+function CountBadge({ value }: { value: number }) {
+  return (
+    <Badge className='entry__badge' value={value} max={99} color={THEME.primary} top={0} right={0}>
+      <View className='entry__badge-box' />
+    </Badge>
+  )
+}
 
+/**
+ * 「我的」。
+ *
+ * 只负责两件事：展示自己是谁 + 进入各个功能。
+ * 资料编辑（昵称 / 头像 / 城市）全部搬到独立的「设置」页 ——
+ * 以前把表单嵌在展开的列表项里，展开一片、收起一片，很容易点错。
+ */
 export default function Profile() {
   const user = useUserStore((s) => s.user)
-  const updateProfile = useUserStore((s) => s.updateProfile)
+  const changeAvatar = useAvatarPicker()
 
   const [section, setSection] = useState<Section>('items')
   const [items, setItems] = useState<Item[]>([])
   const [wanted, setWanted] = useState<CardItem[]>([])
-  const [nickname, setNickname] = useState('')
-  const [city, setCity] = useState('')
-  const [saving, setSaving] = useState(false)
 
   const load = async () => {
     try {
@@ -52,32 +66,15 @@ export default function Profile() {
     }
   }
 
+  // 设置页改完资料、或者下架物品后回到这里，都要刷新
   useDidShow(() => {
     void load()
   })
 
-  useEffect(() => {
-    // 正在编辑时不要被 store 的更新覆盖掉用户输入
-    if (!user || section === 'settings') return
-    setNickname(user.nickname)
-    setCity(user.city)
-  }, [user, section])
-
   const toggle = (next: Section) => setSection((cur) => (cur === next ? null : next))
 
-  const save = async () => {
-    if (!nickname.trim()) {
-      void Taro.showToast({ title: '昵称不能为空', icon: 'none' })
-      return
-    }
-    setSaving(true)
-    try {
-      await updateProfile({ nickname: nickname.trim(), city })
-      setSection(null)
-      void Taro.showToast({ title: '已保存', icon: 'success' })
-    } finally {
-      setSaving(false)
-    }
+  const openSettings = () => {
+    void Taro.navigateTo({ url: '/pages/settings/index' })
   }
 
   const toggleStatus = async (item: Item) => {
@@ -88,36 +85,25 @@ export default function Profile() {
     void Taro.showToast({ title: next === 'active' ? '已重新上架' : '已下架', icon: 'none' })
   }
 
-  const handleReset = () => {
-    void Taro.showModal({
-      title: '重置演示数据',
-      content: '会清空本地的滑动记录、匹配和聊天，恢复到初始种子数据。',
-      confirmText: '重置',
-      confirmColor: '#3C5434',
-      success: (res) => {
-        if (!res.confirm || !resetMockData()) return
-        void load()
-        void useDeckStore.getState().init()
-        void Taro.showToast({ title: '已重置', icon: 'success' })
-      },
-    })
-  }
-
   const activeCount = items.filter((i) => i.status === 'active').length
+  const initial = (user?.nickname || '换').slice(0, 1)
 
   return (
     <View className='page profile'>
       <ScrollView className='profile__body' scrollY>
         <View className='profile__inner'>
           {/* ---------------------------------------------------- 用户信息 */}
-          <View className='profile__head'>
-            <View className='profile__avatar'>
+          <View className='profile__card'>
+            <View className='profile__avatar' onClick={() => void changeAvatar()}>
               {user?.avatarUrl ? (
                 <ItemImage src={user.avatarUrl} emoji='🙂' className='profile__avatar-img' />
               ) : (
-                <User size={26} color={THEME.sage} />
+                <Avatar size='56' background={THEME.primarySoft} color={THEME.primary}>
+                  {initial}
+                </Avatar>
               )}
             </View>
+
             <View className='profile__who'>
               <Text className='profile__name ellipsis'>{user?.nickname || '未登录'}</Text>
               <Text className='profile__meta'>
@@ -127,18 +113,18 @@ export default function Profile() {
           </View>
 
           {/* ---------------------------------------------------- 功能入口 */}
-          <View className='entries'>
-            <View className='entry' onClick={() => toggle('items')}>
-              <List size={16} color={THEME.sage} />
-              <Text className='entry__label'>我的发布</Text>
-              <Text className='entry__count num'>{items.length}</Text>
-              <ArrowDown
-                size={14}
-                color={THEME.textSub}
-                className={`entry__arrow ${section === 'items' ? 'entry__arrow--open' : ''}`}
-              />
-            </View>
-
+          <CellGroup divider>
+            <Cell
+              clickable
+              title={
+                <View className='entry__main'>
+                  <List size={16} color={THEME.sage} />
+                  <Text className='entry__label'>我的发布</Text>
+                </View>
+              }
+              extra={<CountBadge value={items.length} />}
+              onClick={() => toggle('items')}
+            />
             {section === 'items' && (
               <View className='entry__panel'>
                 {items.length ? (
@@ -185,17 +171,17 @@ export default function Profile() {
               </View>
             )}
 
-            <View className='entry' onClick={() => toggle('wanted')}>
-              <Heart size={16} color={THEME.sage} />
-              <Text className='entry__label'>我的想要</Text>
-              <Text className='entry__count num'>{wanted.length}</Text>
-              <ArrowDown
-                size={14}
-                color={THEME.textSub}
-                className={`entry__arrow ${section === 'wanted' ? 'entry__arrow--open' : ''}`}
-              />
-            </View>
-
+            <Cell
+              clickable
+              title={
+                <View className='entry__main'>
+                  <Heart size={16} color={THEME.sage} />
+                  <Text className='entry__label'>我的想要</Text>
+                </View>
+              }
+              extra={<CountBadge value={wanted.length} />}
+              onClick={() => toggle('wanted')}
+            />
             {section === 'wanted' && (
               <View className='entry__panel'>
                 {wanted.length ? (
@@ -232,60 +218,18 @@ export default function Profile() {
               </View>
             )}
 
-            <View className='entry' onClick={() => toggle('settings')}>
-              <Setting size={16} color={THEME.sage} />
-              <Text className='entry__label'>设置</Text>
-              <Text className='entry__count' />
-              <ArrowDown
-                size={14}
-                color={THEME.textSub}
-                className={`entry__arrow ${section === 'settings' ? 'entry__arrow--open' : ''}`}
-              />
-            </View>
-
-            {section === 'settings' && (
-              <View className='entry__panel'>
-                <Text className='profile__editor-label'>昵称</Text>
-                <Input
-                  className='profile__editor-input'
-                  value={nickname}
-                  maxLength={12}
-                  placeholder='给自己起个名字'
-                  onChange={(v) => setNickname(v)}
-                />
-
-                <Text className='profile__editor-label'>城市</Text>
-                <Text className='profile__editor-hint'>选了城市只推荐同城的物品</Text>
-                <View className='profile__cities'>
-                  {CITIES.map((c) => (
-                    <View
-                      key={c}
-                      className={`profile__city ${city === c ? 'profile__city--on' : ''}`}
-                      onClick={() => setCity(city === c ? '' : c)}
-                    >
-                      <Text>{c}</Text>
-                    </View>
-                  ))}
+            <Cell
+              clickable
+              title={
+                <View className='entry__main'>
+                  <Setting size={16} color={THEME.sage} />
+                  <Text className='entry__label'>设置</Text>
                 </View>
-
-                <Button
-                  type='primary'
-                  block
-                  shape='round'
-                  loading={saving}
-                  onClick={() => void save()}
-                >
-                  保存
-                </Button>
-
-                {USE_MOCK && (
-                  <View className='profile__reset' onClick={handleReset}>
-                    <Text>重置演示数据</Text>
-                  </View>
-                )}
-              </View>
-            )}
-          </View>
+              }
+              extra={<ArrowRight size={14} color={THEME.textWeak} />}
+              onClick={openSettings}
+            />
+          </CellGroup>
 
           <View className='profile__safe-area' />
         </View>

@@ -1,6 +1,6 @@
 {
   "name": "swapy",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "private": true,
   "description": "换换 — 闲置物品滑动匹配交换小程序",
   "templateInfo": {
@@ -18,7 +18,7 @@
     "verify:matching": "node scripts/run-verify.cjs verify-matching",
     "verify:dist": "node scripts/check-dist.cjs",
     "verify:gesture": "node scripts/run-verify.cjs verify-gesture",
-    "verify": "pnpm lint && pnpm typecheck && pnpm verify:theme && pnpm verify:motion && pnpm verify:matching && pnpm verify:store && pnpm verify:user && pnpm verify:chat && pnpm verify:filter && pnpm verify:gesture && pnpm verify:quota && pnpm verify:moderation && pnpm verify:icons && pnpm verify:dist",
+    "verify": "pnpm lint && pnpm typecheck && pnpm verify:theme && pnpm verify:motion && pnpm verify:matching && pnpm verify:store && pnpm verify:user && pnpm verify:city && pnpm verify:chat && pnpm verify:filter && pnpm verify:gesture && pnpm verify:quota && pnpm verify:moderation && pnpm verify:icons && pnpm verify:dist",
     "verify:quota": "node scripts/run-verify.cjs verify-quota",
     "gen:tab-icons": "node scripts/generate-tab-icons.cjs",
     "prebuild:weapp": "node scripts/generate-tab-icons.cjs",
@@ -30,7 +30,8 @@
     "verify:theme": "node scripts/run-verify.cjs verify-theme",
     "verify:motion": "node scripts/run-verify.cjs verify-motion",
     "verify:chat": "node scripts/run-verify.cjs verify-chat",
-    "verify:filter": "node scripts/run-verify.cjs verify-filter"
+    "verify:filter": "node scripts/run-verify.cjs verify-filter",
+    "verify:city": "node scripts/run-verify.cjs verify-city"
   },
   "browserslist": [
     "last 3 versions",

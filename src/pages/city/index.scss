@@ -1,0 +1,130 @@
+.city {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.city__search {
+  flex: none;
+  padding: 10px 16px 6px;
+  background: $bg;
+
+  // SearchBar 自带 `6px 16px` 的内边距和灰底：外层已经给了左右 16px，
+  // 不覆写的话输入框会被左右各推 32px，还会多出一条和页面不同色的灰带
+  --nutui-searchbar-padding: 6px 0;
+  --nutui-searchbar-background: transparent;
+}
+
+.city__body {
+  flex: 1;
+  min-height: 0;
+}
+
+.city__inner {
+  padding: 4px 16px 0;
+}
+
+.city__safe-area {
+  height: 24px;
+}
+
+// ------------------------------------------------------------------ 不限城市
+
+.city__any {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 14px;
+  border: 1px solid $border;
+  border-radius: 12px;
+  background: $card;
+}
+
+.city__any--on {
+  border-color: $brand;
+  background: $brand-soft;
+}
+
+.city__any-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.city__any-title {
+  color: $text;
+  font-size: 14px;
+}
+
+.city__any-desc {
+  color: $text-sub;
+  font-size: 11px;
+}
+
+// ------------------------------------------------------------------ 分组标题
+
+.city__section {
+  display: block;
+  padding: 20px 2px 8px;
+  color: $text-sub;
+  font-size: 12px;
+}
+
+// ------------------------------------------------------------------ 城市网格
+
+.city__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.city__chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  border: 1px solid $border;
+  border-radius: 10px;
+  background: $card;
+}
+
+.city__chip--on {
+  border-color: $brand;
+  background: $brand;
+}
+
+.city__chip-text {
+  color: $text-sub;
+  font-size: 13px;
+}
+
+.city__chip--on .city__chip-text {
+  color: $bg;
+  font-weight: 500;
+}
+
+// 热门城市只有 10 个，字比「全部城市」里的三字城市长，稍微放宽一点
+.city__grid--hot {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+// ------------------------------------------------------------------ 空态
+
+.city__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 60px 0;
+}
+
+.city__empty-text {
+  color: $text-sub;
+  font-size: 13px;
+}
+
+.city__empty-desc {
+  color: $text-weak;
+  font-size: 11px;
+}

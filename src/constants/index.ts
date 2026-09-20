@@ -1,5 +1,9 @@
 import type { Category, Condition, PriceRange } from '@/types'
 
+// 城市数据（HOT_CITIES / ALL_CITIES / ALL_CITY_NAMES）从这里统一出口，
+// 页面只引 @/constants。数据本体在 ./cities.ts。
+export * from './cities'
+
 /**
  * 运行时用到的颜色（图标 color 属性等）。
  * 必须和 src/styles/variables.scss 保持一致 —— 那边给样式用，这边给组件属性用。

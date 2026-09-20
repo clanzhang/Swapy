@@ -12,6 +12,28 @@ page {
   // 标签的默认高度 14px、字号 10px 是给小角标用的，做筛选项太小
   --nutui-tag-height: auto;
   --nutui-tag-font-size: 13px;
+  /*
+    Cell / CellGroup：NutUI 默认是「每条都带阴影的独立卡片」（margin 10px、
+    box-shadow、圆角 6px）。本项目的分组列表是白底圆角块 + 细分割线，
+    这里统一改掉，页面里就不用每条 Cell 都覆写一遍。
+  */
+  --nutui-cell-padding: 14px 16px;
+  --nutui-cell-background-color: #{$card};
+  --nutui-cell-box-shadow: none;
+  --nutui-cell-border-radius: 12px;
+  --nutui-cell-title-font-size: 14px;
+  --nutui-cell-title-color: #{$text};
+  --nutui-cell-description-color: #{$text-weak};
+  --nutui-cell-description-font-size: 11px;
+  --nutui-cell-extra-color: #{$text-sub};
+  --nutui-cell-group-background-color: #{$card};
+  --nutui-cell-group-wrap-margin: 0;
+  --nutui-cell-group-title-color: #{$text-sub};
+  --nutui-cell-group-title-font-size: 12px;
+  --nutui-cell-group-title-padding: 0 2px;
+  --nutui-cell-divider-left: 16px;
+  --nutui-cell-divider-right: 16px;
+  --nutui-cell-divider-border-bottom: 1px solid #{$divider};
 
   background: $bg;
   color: $text;

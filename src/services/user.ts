@@ -16,4 +16,11 @@ export const userService = {
   // 注意：这里必须用箭头包一层，不能写 `updateProfile: api.updateProfile`。
   // 这些模块和 index.ts 互相引用，直接引用属性会在模块初始化时踩 TDZ。
   updateProfile: (patch: ProfilePatch) => api.updateProfile(patch),
+
+  /**
+   * 上传头像，返回可直接渲染的地址。
+   * 头像本质上和物品图片走同一条云存储链路，但归属上是用户资料，
+   * 所以放在这里而不是让页面去调 itemService.uploadImages。
+   */
+  uploadAvatar: (filePath: string) => api.uploadImage(filePath),
 }

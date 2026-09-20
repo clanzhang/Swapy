@@ -1,0 +1,87 @@
+.settings {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.settings__body {
+  flex: 1;
+  min-height: 0;
+}
+
+.settings__inner {
+  padding: 16px 16px 0;
+}
+
+.settings__safe-area {
+  height: 24px;
+}
+
+// ------------------------------------------------------------------ 头像
+
+.settings__avatar-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 0 18px;
+  // 下面 CellGroup 的标题自带 30px 上边距，这里不要再叠一层
+  border-radius: $radius-card;
+  background: $card;
+  box-shadow: $shadow-card;
+}
+
+.settings__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: $subtle;
+}
+
+.settings__avatar-img {
+  width: 100%;
+  height: 100%;
+}
+
+.settings__avatar-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: $sage;
+  font-size: 12px;
+}
+
+// ------------------------------------------------------------------ 资料项
+
+.settings__value {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  // 不写 min-width: 0 的话，里面的长昵称会把行撑开，ellipsis 不生效
+  min-width: 0;
+  max-width: 55vw;
+}
+
+.settings__value-text {
+  color: $text-sub;
+  font-size: 13px;
+}
+
+.settings__hint {
+  display: block;
+  padding: 14px 4px 0;
+  color: $text-weak;
+  font-size: 11px;
+}
+
+// ------------------------------------------------------------------ 昵称弹窗
+
+.settings__dialog-input {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: $subtle;
+  font-size: 14px;
+}

@@ -32,6 +32,9 @@ pnpm build:weapp    # 构建到 dist/
 登录是**静默**的：打开小程序自动拿 openid 建号，不需要注册、不需要手机号、不弹窗。
 昵称和头像延迟到**第一次右滑**时才引导完善，而且可以跳过。
 
+想把 Mock 数据恢复到初始种子状态：在开发者工具里「清缓存 → 清除数据缓存」，
+或直接调 `src/services/mock.ts` 的 `resetMockData()`（页面上不再放这个按钮）。
+
 ### 命令
 
 | 命令 | 说明 |
@@ -47,6 +50,7 @@ pnpm build:weapp    # 构建到 dist/
 | `pnpm verify:chat` | 聊天验证（9 项：去重、分页、时间戳规则） |
 | `pnpm verify:motion` | 动画性能验证（4 项，防弹窗卡屏回归） |
 | `pnpm verify:user` | 登录注册验证（8 项断言，含 isNew 与城市为空） |
+| `pnpm verify:city` | 城市选择验证（9 项断言，含拼音搜索与「种子城市要在列表里」） |
 | `pnpm verify:gesture` | 滑动手势验证（12 项断言 + 参数表） |
 | `pnpm verify:quota` | 每日配额验证（10 项断言） |
 | `pnpm verify:moderation` | 发布内容校验（7 项断言，重点是「不该拦」的样例） |
@@ -67,7 +71,7 @@ echo 'TARO_APP_CLOUD_ENV=你的云环境ID' > .env
 ```
 src/
 ├── services/            # 数据访问层
-│   ├── user.ts          #   userService  → login
+│   ├── user.ts          #   userService  → login / updateProfile / uploadAvatar
 │   ├── item.ts          #   itemService  → getCards / publishItem / uploadImages
 │   ├── swipe.ts         #   swipeService → swipe
 │   ├── match.ts         #   matchService → getMatches
@@ -89,14 +93,17 @@ src/
 │   ├── MatchModal/      #   匹配成功弹窗 + 撒花动画
 │   ├── ItemDetailSheet/ #   上滑唤起的半屏详情
 │   └── CategoryFilter/  #   首页品类筛选
+├── hooks/               #   useEnter（两段式入场）/ useAvatarPicker（换头像）
 ├── pages/
 │   ├── index/           #   首页 · 滑动匹配
 │   ├── publish/         #   发布闲置
 │   ├── matches/         #   匹配列表
 │   ├── chat/            #   聊天
-│   └── profile/         #   我的
-├── constants/           # 品类/成色/估值区间枚举 + 种子数据
-├── utils/               # 距离计算、时间格式化
+│   ├── profile/         #   我的（只有信息卡片 + 功能入口）
+│   ├── settings/        #   设置（昵称 / 头像 / 城市，改完即时保存）
+│   └── city/            #   选择城市（搜索 + 热门 + 全部）
+├── constants/           # 品类/成色/估值区间枚举 + 城市列表 + 种子数据
+├── utils/               # 距离计算、时间格式化、城市搜索
 └── styles/              # 设计变量 + NutUI 按需样式
 
 cloudfunctions/          # 7 个云函数
@@ -121,6 +128,10 @@ assets/tab/              # TabBar 的 PNG（由 pnpm gen:tab-icons 生成，产�
   每日上限和刷新整点是常量，改的时候三处要对齐。**判定只在服务端做**：
   客户端只拿 `{ limit, used, remaining, resetAt }` 显示，不参与计算。
 - **图片切图用点击左右区域，不用横滑** —— 横滑手势留给「跳过 / 想要」。
+- **城市列表只有一个数据源**：`src/constants/cities.ts`（`HOT_CITIES` /
+  `ALL_CITIES`）。页面里不要再抄一份 —— 抄漏了就会出现「用户资料里的城市，
+  在选择页里找不到」，不报错但没法用。搜索规则在 `src/utils/city.ts`，
+  改完跑 `pnpm verify:city`。
 - **改了 `src/constants/seed.ts` 就要把 `SEED_VERSION` +1**。Mock 数据存在本地
   Storage，版本对不上会自动重新播种；忘了加会导致老设备上一直是旧牌堆，
   表现得像「功能坏了」。
@@ -145,8 +156,8 @@ assets/tab/              # TabBar 的 PNG（由 pnpm gen:tab-icons 生成，产�
 
 | 项 | 值 |
 | --- | --- |
-| 主色 | `#FF6B35` 活力橙 |
-| 辅色 | `#FFF3E0` 浅橙背景 |
+| 主色 | `#3C5434` 深墨绿 |
+| 辅色 | `#E9EEE7` 墨绿浅底 / `#94601A` 暖棕强调 |
 | 卡片 | 圆角 16px、白色、`0 8px 24px rgba(24,24,32,.1)` 阴影 |
 | 设计稿宽度 | 375（代码里写 px，Taro 转 rpx） |
 
