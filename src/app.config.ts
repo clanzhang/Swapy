@@ -50,4 +50,19 @@ export default defineAppConfig({
     navigationBarTitleText: '换换',
     navigationBarTextStyle: 'black',
   },
+  /**
+   * 「选择城市」页的「使用当前定位」要用定位接口。
+   *
+   * 自 2022-07-14 起，没在这里声明的定位接口调用会直接失败
+   * （getLocation:fail the api need to be declared in the requiredPrivateInfos field）。
+   * 声明只是必要条件，接口能调通还要求在「开发管理 → 接口设置」里申请开通，
+   * 并在后台「用户隐私保护指引」里勾选地理位置 —— 少一个都会 fail，
+   * 客户端已做降级（提示手动选城市）。
+   */
+  requiredPrivateInfos: ['getFuzzyLocation', 'getLocation'],
+  permission: {
+    'scope.userLocation': {
+      desc: '用于推荐和你同城的物品',
+    },
+  },
 })

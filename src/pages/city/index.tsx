@@ -3,10 +3,12 @@ import { ScrollView, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { useMemo, useState } from 'react'
 
-import { Check, Location } from '@/components/Icon'
+import { ArrowRight, Check, Location } from '@/components/Icon'
 import { ALL_CITIES, HOT_CITIES, THEME } from '@/constants'
+import { useLocateCity } from '@/hooks/useLocateCity'
 import { useUserStore } from '@/store/userStore'
-import { searchCities } from '@/utils/city'
+import { cityCenter, searchCities } from '@/utils/city'
+import type { LatLng } from '@/utils/geo'
 
 import './index.scss'
 
@@ -14,14 +16,16 @@ import './index.scss'
  * 城市选择。
  *
  * 以前是在「设置」里平铺十来个标签：占屏、还选不到自己的城市。
- * 现在改成「搜索 + 热门 + 全部」，并且：
+ * 现在改成「定位 + 搜索 + 热门 + 全部」，并且：
  * - 选中即保存（即时写 users.city），不需要再点保存
+ * - 定位是**主动点击**才触发，不在进页面时弹授权框（和静默登录的调性一致）
  * - 「不限城市」始终可点 —— 城市本来就可选，得留一条退路
- * - 用 searchCities 纯函数匹配中文 / 全拼 / 首字母（pnpm verify:city）
+ * - 用 searchCities / nearestCity 纯函数匹配（pnpm verify:city）
  */
 export default function CityPicker() {
   const user = useUserStore((s) => s.user)
   const updateProfile = useUserStore((s) => s.updateProfile)
+  const { locate, locating } = useLocateCity()
 
   const [keyword, setKeyword] = useState('')
   const [saving, setSaving] = useState(false)
@@ -29,23 +33,41 @@ export default function CityPicker() {
   const current = user?.city ?? ''
   const results = useMemo(() => searchCities(keyword), [keyword])
 
-  const choose = async (city: string) => {
+  const backToSettings = () => {
+    setTimeout(() => void Taro.navigateBack(), 400)
+  }
+
+  /**
+   * 选中一个城市并保存。
+   *
+   * 顺带把城市中心点写进 location —— getCards 是拿 location 算距离的，
+   * 不写的话手选了北京也还是拿默认的上海坐标算，卡片上会出现「1060km」。
+   */
+  const choose = async (city: string, point?: LatLng) => {
     if (saving) return
-    if (city === current) {
+    if (city === current && !point) {
       void Taro.navigateBack()
       return
     }
 
     setSaving(true)
     try {
-      await updateProfile({ city })
-      // 保存成功后立刻返回设置页，那边从 store 读，已经是新城市了
+      const center = point ?? cityCenter(city)
+      await updateProfile({ city, ...(center ? { location: center } : {}) })
       void Taro.showToast({ title: city ? `已切换到${city}` : '已切换为不限城市', icon: 'none' })
-      setTimeout(() => void Taro.navigateBack(), 400)
+      backToSettings()
     } catch {
       setSaving(false)
       void Taro.showToast({ title: '保存失败，稍后再试', icon: 'none' })
     }
+  }
+
+  const locateNow = async () => {
+    if (locating || saving) return
+    // 定位成功后经纬度由 useLocateCity 一并写进资料
+    const res = await locate()
+    void Taro.showToast({ title: res.message, icon: 'none' })
+    if (res.city) backToSettings()
   }
 
   const renderChips = (names: string[], className = '') => (
@@ -87,14 +109,25 @@ export default function CityPicker() {
             )
           ) : (
             <>
+              <View className='city__row city__row--action' onClick={() => void locateNow()}>
+                <Location size={16} color={THEME.primary} />
+                <View className='city__row-main'>
+                  <Text className='city__row-title'>{locating ? '定位中…' : '使用当前定位'}</Text>
+                  <Text className='city__row-desc'>
+                    {locating ? '正在获取位置' : '自动匹配到最近的城市'}
+                  </Text>
+                </View>
+                <ArrowRight size={14} color={THEME.textWeak} />
+              </View>
+
               <View
-                className={`city__any ${current ? '' : 'city__any--on'}`}
+                className={`city__row ${current ? '' : 'city__row--on'}`}
                 onClick={() => void choose('')}
               >
                 <Location size={16} color={current ? THEME.textSub : THEME.primary} />
-                <View className='city__any-main'>
-                  <Text className='city__any-title'>不限城市</Text>
-                  <Text className='city__any-desc'>推荐所有城市的物品</Text>
+                <View className='city__row-main'>
+                  <Text className='city__row-title'>不限城市</Text>
+                  <Text className='city__row-desc'>推荐所有城市的物品</Text>
                 </View>
                 {!current && <Check size={16} color={THEME.primary} />}
               </View>

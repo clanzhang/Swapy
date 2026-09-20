@@ -50,7 +50,7 @@ pnpm build:weapp    # 构建到 dist/
 | `pnpm verify:chat` | 聊天验证（9 项：去重、分页、时间戳规则） |
 | `pnpm verify:motion` | 动画性能验证（4 项，防弹窗卡屏回归） |
 | `pnpm verify:user` | 登录注册验证（8 项断言，含 isNew 与城市为空） |
-| `pnpm verify:city` | 城市选择验证（9 项断言，含拼音搜索与「种子城市要在列表里」） |
+| `pnpm verify:city` | 城市选择验证（14 项断言，含拼音搜索、坐标表与就近匹配） |
 | `pnpm verify:gesture` | 滑动手势验证（12 项断言 + 参数表） |
 | `pnpm verify:quota` | 每日配额验证（10 项断言） |
 | `pnpm verify:moderation` | 发布内容校验（7 项断言，重点是「不该拦」的样例） |
@@ -129,9 +129,19 @@ assets/tab/              # TabBar 的 PNG（由 pnpm gen:tab-icons 生成，产�
   客户端只拿 `{ limit, used, remaining, resetAt }` 显示，不参与计算。
 - **图片切图用点击左右区域，不用横滑** —— 横滑手势留给「跳过 / 想要」。
 - **城市列表只有一个数据源**：`src/constants/cities.ts`（`HOT_CITIES` /
-  `ALL_CITIES`）。页面里不要再抄一份 —— 抄漏了就会出现「用户资料里的城市，
-  在选择页里找不到」，不报错但没法用。搜索规则在 `src/utils/city.ts`，
-  改完跑 `pnpm verify:city`。
+  `ALL_CITIES`，含拼音和市中心坐标）。页面里不要再抄一份 —— 抄漏了就会出现
+  「用户资料里的城市，在选择页里找不到」，不报错但没法用。搜索和就近匹配在
+  `src/utils/city.ts`，改完跑 `pnpm verify:city`。
+- **定位只在用户主动点击时请求**（城市选择页的「使用当前定位」），不在进页面时弹
+  授权框。微信不给城市名、只给经纬度，本项目**不接外部逆地理编码服务** ——
+  拿 `ALL_CITIES` 的市中心做就近匹配（`nearestCity`），代价是边界地区可能选到
+  邻近城市，但不用管腾讯地图的 key 和配额。接口能调通有三个前提：在「开发管理 →
+  接口设置」申请开通定位权限、`app.config.ts` 里的 `requiredPrivateInfos` 声明、
+  微信后台「用户隐私保护指引」勾选地理位置；少一个接口就会 fail，
+  客户端已降级为提示手动选择。
+- **手选城市会一并写 `location` = 该城市中心点**。`getCards` 是拿 `location`
+  算距离的，不写就会一直用 `DEFAULT_LOCATION`（上海）当原点，卡片上会出现
+  「1060km」这种距离。
 - **改了 `src/constants/seed.ts` 就要把 `SEED_VERSION` +1**。Mock 数据存在本地
   Storage，版本对不上会自动重新播种；忘了加会导致老设备上一直是旧牌堆，
   表现得像「功能坏了」。

@@ -225,4 +225,9 @@ export interface ProfilePatch {
   nickname?: string
   avatarUrl?: string
   city?: string
+  /**
+   * 经纬度。定位或手选城市时一起写进去 ——
+   * getCards 用它算距离，不写的话手选了北京也还在拿上海当原点算。
+   */
+  location?: { lat: number; lng: number }
 }

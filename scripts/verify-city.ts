@@ -12,9 +12,9 @@
  */
 import assert from 'node:assert/strict'
 
-import { ALL_CITIES, ALL_CITY_NAMES, HOT_CITIES } from '@/constants/cities'
+import { ALL_CITIES, ALL_CITY_NAMES, HOT_CITIES, type City } from '@/constants/cities'
 import { SEED_ME, SEED_USERS } from '@/constants/seed'
-import { searchCities } from '@/utils/city'
+import { cityCenter, nearestCity, searchCities } from '@/utils/city'
 
 function step(title: string, fn: () => void) {
   fn()
@@ -98,15 +98,57 @@ function main() {
   })
 
   step('保持候选顺序，且不改动入参', () => {
-    const custom = [
-      { name: '乙城', pinyin: 'yi cheng' },
-      { name: '甲城', pinyin: 'jia cheng' },
+    const custom: City[] = [
+      { name: '乙城', pinyin: 'yi cheng', lat: 30, lng: 120 },
+      { name: '甲城', pinyin: 'jia cheng', lat: 40, lng: 110 },
     ]
     const frozen = Object.freeze(custom.map((c) => Object.freeze({ ...c })))
 
-    assert.deepEqual(searchCities('城', frozen as typeof custom), ['乙城', '甲城'])
-    assert.deepEqual(searchCities('jia', frozen as typeof custom), ['甲城'])
+    assert.deepEqual(searchCities('城', frozen as City[]), ['乙城', '甲城'])
+    assert.deepEqual(searchCities('jia', frozen as City[]), ['甲城'])
     assert.equal(custom.length, 2, '搜索不该增删候选')
+  })
+
+  step('每个城市的坐标都在中国范围内', () => {
+    for (const city of ALL_CITIES) {
+      assert.ok(
+        city.lat > 3 && city.lat < 54,
+        `${city.name} 的纬度 ${city.lat} 不在中国范围内（3~54）`,
+      )
+      assert.ok(
+        city.lng > 73 && city.lng < 136,
+        `${city.name} 的经度 ${city.lng} 不在中国范围内（73~136）`,
+      )
+    }
+  })
+
+  step('就近匹配：拿城市自己的坐标去定位，匹配回它自己', () => {
+    // 这条把 101 个城市筛一遍：坐标写错（比如把上海的纬度填到苏州行）、
+    // 或两个城市的坐标写重了，都会在这里暴露出来
+    for (const city of ALL_CITIES) {
+      const hit = nearestCity({ lat: city.lat, lng: city.lng })
+      assert.equal(hit, city.name, `${city.name} 的坐标匹配到了 ${hit}，坐标表写错了`)
+    }
+  })
+
+  step('就近匹配：真实定位点落在正确的城市', () => {
+    assert.equal(nearestCity({ lat: 31.2304, lng: 121.4737 }), '上海', '人民广场')
+    assert.equal(nearestCity({ lat: 39.9042, lng: 116.4074 }), '北京', '天安门')
+    assert.equal(nearestCity({ lat: 22.5431, lng: 114.0579 }), '深圳', '福田')
+    assert.equal(nearestCity({ lat: 23.1291, lng: 113.2644 }), '广州', '越秀')
+    // 模糊定位的坐标会偏离市中心几公里，不该换城市
+    assert.equal(nearestCity({ lat: 31.19, lng: 121.35 }), '上海', '虹桥附近仍是上海')
+  })
+
+  step('城市中心点：取得到就返回坐标，取不到返回 undefined', () => {
+    assert.deepEqual(cityCenter('苏州'), { lat: 31.3, lng: 120.62 })
+    assert.equal(cityCenter('不存在的城'), undefined)
+    // 手选城市时要把中心点写进 location，否则距离会拿默认的上海坐标算
+    assert.deepEqual(cityCenter('北京'), cityCenter('北京'))
+  })
+
+  step('就近匹配：候选为空时返回 null，不抛错', () => {
+    assert.equal(nearestCity({ lat: 31.2, lng: 121.4 }, []), null)
   })
 
   console.log('\n全部通过 ✅\n')
