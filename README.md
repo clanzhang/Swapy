@@ -44,6 +44,7 @@ pnpm build:weapp    # 构建到 dist/
 | `pnpm lint` | ESLint（hooks 依赖、未使用变量等） |
 | `pnpm typecheck` | TypeScript 检查（strict） |
 | `pnpm verify` | 下面全部一起跑 |
+| `pnpm verify:theme` | 色板验证（SCSS 变量 ↔ THEME 常量、旧配色残留、tabBar 配色、主色通道） |
 | `pnpm verify:matching` | 匹配算法验证（14 项断言，含分页不漏卡） |
 | `pnpm verify:store` | deckStore 状态机验证（9 项断言，含并发、失败恢复、预加载） |
 | `pnpm verify:filter` | 筛选验证（7 项：标签增删、不可变性、sameCategories） |
@@ -90,10 +91,13 @@ src/
 │   ├── CardStack/       #   三张牌的堆叠与层次
 │   ├── ItemImage/       #   统一图片组件（含渐变占位图兜底）
 │   ├── ItemImagePager/  #   多图浏览（点击切图 + 进度条）
-│   ├── MatchModal/      #   匹配成功弹窗 + 撒花动画
 │   ├── ItemDetailSheet/ #   上滑唤起的半屏详情
-│   └── CategoryFilter/  #   首页品类筛选
+│   ├── MatchModal/      #   匹配成功弹窗 + 撒花动画
+│   ├── ProfileGuide/    #   第一次右滑后的完善资料引导（可跳过）
+│   ├── TagPicker/       #   成色 / 估值区间选择器（发布页用）
+│   └── Quota/           #   额度徽标 + 额度用完后的引导页
 ├── hooks/               #   useEnter（两段式入场）/ useAvatarPicker（换头像）
+│                        #   useLocateCity（当前定位 → 就近城市）
 ├── pages/
 │   ├── index/           #   首页 · 滑动匹配
 │   ├── publish/         #   发布闲置
@@ -103,7 +107,7 @@ src/
 │   ├── settings/        #   设置（昵称 / 头像 / 城市，改完即时保存）
 │   └── city/            #   选择城市（搜索 + 热门 + 全部，定位默认关着）
 ├── constants/           # 品类/成色/估值区间枚举 + 城市列表 + 种子数据
-├── utils/               # 距离计算、时间格式化、城市搜索
+├── utils/               # 距离计算、时间格式化、城市搜索、内容校验、配额、牌堆视图判定
 └── styles/              # 设计变量 + NutUI 按需样式
 
 cloudfunctions/          # 7 个云函数
@@ -172,6 +176,52 @@ assets/tab/              # TabBar 的 PNG（由 pnpm gen:tab-icons 生成，产�
   否则小程序启动会崩。`pnpm verify:dist` 会兜底拦截。
 - **设计变量在 `src/styles/variables.scss`**，经 `sass.resource` 全局注入到每个
   `.scss`，组件里不用 `@import`。
+
+## 排查
+
+几条「看起来像代码坏了，其实是环境」的坑。先按这里过一遍再动代码。
+
+### 模拟器起不来 / `Error: simulator launch failed`
+
+关键是看日志里报错行的**下一行**，真原因在那儿：
+
+```
+~/Library/Application Support/微信开发者工具/<项目 hash>/WeappLog/logs/<日期时间>.log
+```
+
+- **带具体原因**的（`dist/app.json: 根据 project.config.json 中 miniprogramRoot 指定的小程序
+  目录 dist/，在该目录下未找到 app.json`、`requiredPrivateInfos 'getFuzzyLocation' 与
+  'getLocation' 互斥`…）→ 确实是产物的问题，`pnpm verify:dist` 能复现，去改产物。
+- **光秃秃一句 `Error: simulator launch failed`**，前后是
+  `[BuilderFactory] shouldCreate=true reason=simulatorType changed old=undefined new=wechat`
+  → 是开发者工具自己的启动竞态：30ms 内 builder 被销毁重建了好几代，在飞的编译子进程
+  收到 SIGTERM，launch 的 promise 就以 `undefined` reject 了。工具源码里那句
+  `const a = null != t ? t : new Error("simulator launch failed")` 把真原因丢了，所以看不到细节。
+  产物是好的，再点一次「编译」即可，日志里会出现 `simulator launch success`。
+
+### 真机 / 模拟器 Console 里的红字
+
+- `[wxapplib]] [广告调优] recoverTuoguanOptimizeAd error: ... operateWXData:fail invalid scope`
+  是微信底座自己的「托管优化广告」在跑，账号没有对应 scope 就报这个。**不是小程序的问题**
+  （项目里没接任何广告 SDK）。
+- 判断是不是自己的错：看堆栈有没有指向 `dist/` 或页面文件。没有就不用管。
+
+### 「牌堆空了」/ 空状态
+
+首页的空状态只在 `deckView`（`src/utils/deck.ts`）判成 `empty` / `retrying` 时才渲染，
+而这两个状态**都要求牌堆里 0 张卡**（`empty` 还要 `hasMore=false`）。所以：
+
+- 还有卡却弹出「附近的物品都看过了」→ 是判定写错了，`pnpm verify:store` 会拦下来。
+- 真机上牌堆确实是空的 → 是 Mock 存档被滑干了（种子只有几十张，额度每天 30 张）。
+
+Mock 存档放在 Storage 里，**模拟器和真机各一份、互不同步**。模拟器那份能直接读出来：
+
+```
+~/Library/Application Support/微信开发者工具/<项目 hash>/WeappSimulator/WeappStorage/storage_*.json
+```
+
+里面的 `swapy:mock-db:v1` 存着 `items` / `swipes`（滑过哪些）/ `quota` / `matches`，
+排查「怎么没卡了」直接看它比猜快。想从头来一遍：开发者工具「清缓存 → 清除数据缓存」。
 
 ## 设计规范
 
