@@ -44,4 +44,4 @@ echo 'TARO_APP_CLOUD_ENV=你的云环境ID' > .env
 `src/services/index.ts` 会自动把 Mock 实现换成云开发实现，业务代码不用改。
 建集合、建索引、部署云函数的步骤见 [cloudfunctions/README.md](./cloudfunctions/README.md)。
 
-归 clan.z 所有
+
